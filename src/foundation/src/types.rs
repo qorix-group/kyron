@@ -16,7 +16,6 @@ pub enum CommonErrors {
     NoData,
     AlreadyDone,
     GenericError,
-    AlreadyTaken,
     OperationAborted,
     Panicked, // panic! was handled
     Timeout,

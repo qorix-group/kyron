@@ -23,7 +23,6 @@ rust_binary(
     deps = [
         "//src/kyron:libkyron",
         "//src/kyron-foundation:libkyron_foundation",
-        "//src/orchestration:liborchestration",
     ] + all_crate_deps(
         normal = True,
     ),

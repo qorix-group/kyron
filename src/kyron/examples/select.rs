@@ -58,9 +58,9 @@ fn main() {
         {
             info!("Test 1");
 
-            let mut fut1 = spawn(short_job(111));
-            let mut fut2 = spawn(long_job(222));
-            let mut fut3 = spawn(long_job(333));
+            let fut1 = spawn(short_job(111));
+            let fut2 = spawn(long_job(222));
+            let fut3 = spawn(long_job(333));
             let mut result = 0;
 
             select! {
@@ -82,9 +82,9 @@ fn main() {
         {
             info!("Test 2");
 
-            let mut fut1 = spawn(long_job(111));
-            let mut fut2 = spawn(short_job(222));
-            let mut fut3 = spawn(long_job(333));
+            let fut1 = spawn(long_job(111));
+            let fut2 = spawn(short_job(222));
+            let fut3 = spawn(long_job(333));
             let mut result = 0;
 
             select! {
@@ -106,9 +106,9 @@ fn main() {
         {
             info!("Test 3");
 
-            let mut fut1 = spawn(short_job(111));
-            let mut fut2 = spawn(very_long_job(222));
-            let mut fut3 = spawn(long_job(333));
+            let fut1 = spawn(short_job(111));
+            let fut2 = spawn(very_long_job(222));
+            let fut3 = spawn(long_job(333));
             let mut result = 0;
 
             select! {

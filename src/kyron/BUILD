@@ -21,7 +21,9 @@ _COMMON_DEPS = [
 
 _EXAMPLE_DEPS = _COMMON_DEPS + [
     ":libkyron",
-]
+] + all_crate_deps(
+    normal_dev = True,
+)
 
 rust_library(
     name = "libkyron",

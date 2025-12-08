@@ -11,7 +11,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 load("@rules_rust//rust:defs.bzl", "rust_proc_macro")
-load("@score_kyron_crates//:defs.bzl", "all_crate_deps")
 
 rust_proc_macro(
     name = "runtime_macros",
@@ -19,8 +18,9 @@ rust_proc_macro(
     crate_name = "kyron_macros",
     edition = "2021",
     visibility = ["//visibility:public"],
-    deps =
-        all_crate_deps(
-            normal = True,
-        ),
+    deps = [
+        "@score_crates//:proc_macro2",
+        "@score_crates//:quote",
+        "@score_crates//:syn",
+    ],
 )

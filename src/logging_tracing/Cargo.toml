@@ -29,3 +29,8 @@ perfetto = [
     "dep:tracing-perfetto-sdk-layer",
     "dep:tracing-perfetto-sdk-schema",
 ]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(feature, values("bazel_build_iceoryx2_qnx8"))',
+] }

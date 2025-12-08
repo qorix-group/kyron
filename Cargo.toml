@@ -78,4 +78,7 @@ alloc_instead_of_core = "warn"
 
 
 [workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(feature, values("bazel_build_iceoryx2_qnx8"))',
+    'cfg(loom)',
+] }

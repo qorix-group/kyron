@@ -107,6 +107,9 @@ impl From<crate::Level> for tracing::Level {
 }
 
 mod internal_iceoryx2 {
+    #[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+    use iceoryx2_qnx8 as iceoryx2;
+
     pub use iceoryx2::prelude::LogLevel;
     pub fn set_log_level(level: crate::Level) {
         let iceoryx_level = match level {

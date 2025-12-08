@@ -13,9 +13,7 @@
 
 use core::time::Duration;
 
-use kyron_foundation::not_recoverable_error;
-use kyron_foundation::prelude::*;
-
+use super::{iceoryx2, iceoryx2_cal};
 use crate::io::bridgedfd::BridgedFd;
 use crate::io::AsyncSelector;
 use crate::ipc::iceoryx2::EventBuilderAsyncExt;
@@ -27,6 +25,8 @@ use iceoryx2::prelude::{EventId, FileDescriptorBased};
 use iceoryx2::service;
 use iceoryx2::service::port_factory::listener::PortFactoryListener;
 use iceoryx2_cal::event::ListenerWaitError;
+use kyron_foundation::not_recoverable_error;
+use kyron_foundation::prelude::*;
 
 impl<Service: service::Service> EventBuilderAsyncExt for PortFactoryListener<'_, Service>
 where

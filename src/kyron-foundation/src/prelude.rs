@@ -11,6 +11,36 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_container;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_container_qnx8 as iceoryx2_bb_container;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_elementary;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_elementary_qnx8 as iceoryx2_bb_elementary;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_elementary_traits;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_elementary_traits_qnx8 as iceoryx2_bb_elementary_traits;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_lock_free;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_lock_free_qnx8 as iceoryx2_bb_lock_free;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_memory;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_memory_qnx8 as iceoryx2_bb_memory;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_bb_posix;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+pub use iceoryx2_bb_posix_qnx8 as iceoryx2_bb_posix;
+
 pub use crate::sync::foundation_atomic::*;
 pub use iceoryx2_bb_elementary::scope_guard::*;
 pub use iceoryx2_bb_lock_free::*;

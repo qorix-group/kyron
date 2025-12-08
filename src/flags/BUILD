@@ -27,3 +27,17 @@ config_setting(
     },
     visibility = ["//visibility:public"],
 )
+
+# Flag to enable IPC mechanisms, it is enabled by default
+bool_flag(
+    name = "k_enable_ipc",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "enable_ipc",
+    flag_values = {
+        ":k_enable_ipc": "True",
+    },
+    visibility = ["//visibility:public"],
+)

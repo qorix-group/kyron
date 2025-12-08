@@ -10,6 +10,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+use iceoryx2_qnx8 as iceoryx2;
+
+#[cfg(not(feature = "bazel_build_iceoryx2_qnx8"))]
+pub use iceoryx2_cal;
+#[cfg(feature = "bazel_build_iceoryx2_qnx8")]
+use iceoryx2_cal_qnx8 as iceoryx2_cal;
+
 use iceoryx2::port::listener::ListenerCreateError;
 use iceoryx2::service;
 

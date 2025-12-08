@@ -27,7 +27,6 @@ copyright_checker(
         "component_integration_tests",
         "docs",
         "internal_docs",
-        "patches",
         "scripts",
         "src",
         "tests",

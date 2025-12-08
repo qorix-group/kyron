@@ -18,6 +18,8 @@ pub mod worker_types;
 
 use crate::scheduler::{workers::worker_types::WorkerId, SchedulerType};
 use ::core::fmt::Debug;
+use kyron_foundation::prelude::*;
+
 use iceoryx2_bb_container::string::String;
 use iceoryx2_bb_posix::thread::{Thread, ThreadBuilder, ThreadName, ThreadSpawnError};
 

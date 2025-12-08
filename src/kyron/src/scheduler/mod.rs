@@ -29,6 +29,8 @@ pub enum SchedulerType {
     Other,
 }
 
+use kyron_foundation::prelude::iceoryx2_bb_posix;
+
 impl From<&SchedulerType> for iceoryx2_bb_posix::scheduler::Scheduler {
     fn from(scheduler_type: &SchedulerType) -> Self {
         match scheduler_type {

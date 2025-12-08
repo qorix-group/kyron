@@ -18,7 +18,7 @@ use ::core::alloc::Layout;
 use std::alloc::{self, dealloc};
 use std::sync::Arc;
 
-use iceoryx2_bb_memory::heap_allocator::HeapAllocator;
+use crate::prelude::iceoryx2_bb_memory::heap_allocator::HeapAllocator;
 
 use crate::containers::Vector;
 

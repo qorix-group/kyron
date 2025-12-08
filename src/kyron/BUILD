@@ -10,34 +10,46 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
-load("@score_kyron_crates//:defs.bzl", "all_crate_deps")
 
 _COMMON_DEPS = [
     "//src/kyron-foundation:libkyron_foundation",
-] + all_crate_deps(
-    normal = True,
+    "@score_crates//:libc",
+]
+
+_KYRON_DEPS = (
+    _COMMON_DEPS +
+    select({
+        "//conditions:default": [],
+        "//src/flags:enable_ipc": [
+            "@score_crates//:iceoryx2_qnx8",
+            "@score_crates//:iceoryx2_cal_qnx8",
+        ],
+    })
 )
 
 _EXAMPLE_DEPS = _COMMON_DEPS + [
     ":libkyron",
-] + all_crate_deps(
-    normal_dev = True,
-)
+    "@score_crates//:tracing_subscriber",
+]
 
 rust_library(
     name = "libkyron",
     srcs = glob(["src/**/*.rs"]),
-    crate_features = select({
-        "//conditions:default": [],
+    crate_features = selects.with_or({
         "//src/flags:runtime_disable_time_correction": ["disable_vm_correction"],
-    }) + ["tracing"],
+        "//src/flags:enable_ipc": ["iceoryx2-ipc"],
+    }) + [
+        "bazel_build_iceoryx2_qnx8",
+        "tracing",
+    ],
     crate_name = "kyron",
     proc_macro_deps = [
         "//src/kyron-macros:runtime_macros",
     ],
     visibility = ["//visibility:public"],
-    deps = _COMMON_DEPS,
+    deps = _KYRON_DEPS,
 )
 
 rust_library(
@@ -59,12 +71,10 @@ rust_library(
 rust_test(
     name = "tests",
     crate = ":libkyron",
-    deps = all_crate_deps(
-        normal = True,
-    ) + [
+    deps = [
         "//src/kyron:libkyron",
         "//src/kyron-testing:test_utils",
-    ],
+    ] + _COMMON_DEPS,
 )
 
 rust_binary(

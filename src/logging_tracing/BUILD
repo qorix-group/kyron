@@ -11,17 +11,21 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 load("@rules_rust//rust:defs.bzl", "rust_library")
-load("@score_kyron_crates//:defs.bzl", "all_crate_deps")
 
 rust_library(
     name = "liblogging_tracing",
     srcs = glob(["src/**/*.rs"]),
     crate_features = [
+        "bazel_build_iceoryx2_qnx8",
         "tracing",
     ],
     crate_name = "logging_tracing",
     visibility = ["//visibility:public"],
-    deps = all_crate_deps(
-        normal = True,
-    ),
+    deps = [
+        "//src/kyron-foundation:libkyron_foundation",
+        "@score_crates//:env_logger",
+        "@score_crates//:iceoryx2_qnx8",
+        "@score_crates//:tracing",
+        "@score_crates//:tracing_subscriber",
+    ],
 )

@@ -865,13 +865,7 @@ name = "kyron"
 version = "0.0.3"
 dependencies = [
  "iceoryx2",
- "iceoryx2-bb-container",
- "iceoryx2-bb-elementary",
- "iceoryx2-bb-elementary-traits",
- "iceoryx2-bb-lock-free",
- "iceoryx2-bb-posix",
  "iceoryx2-cal",
- "iceoryx2-pal-concurrency-sync",
  "kyron-foundation",
  "kyron-macros",
  "kyron-testing",
@@ -1465,8 +1459,8 @@ dependencies = [
 
 [[package]]
 name = "test_scenarios_rust"
-version = "0.3.0"
-source = "git+https://github.com/eclipse-score/testing_tools.git?tag=v0.3.0#a2f9cded3deb636f5dc800bf7a47131487119721"
+version = "0.3.1"
+source = "git+https://github.com/qorix-group/testing_tools.git?rev=2367017e92a65cf4dd2cebeee6d6db3b4d6a1447#2367017e92a65cf4dd2cebeee6d6db3b4d6a1447"
 dependencies = [
  "tracing",
  "tracing-subscriber",

@@ -27,16 +27,16 @@ bazel_dep(name = "platforms", version = "1.0.0")
 
 # S-CORE process rules
 bazel_dep(name = "score_bazel_platforms", version = "0.0.2")
-bazel_dep(name = "score_docs_as_code", version = "1.4.0")
+bazel_dep(name = "score_docs_as_code", version = "2.2.0")
 bazel_dep(name = "score_tooling", version = "1.0.4")
 
 bazel_dep(name = "score_process", version = "1.2.1", dev_dependency = True)
-bazel_dep(name = "score_platform", version = "0.3.0", dev_dependency = True)  # This is main score repo
+bazel_dep(name = "score_platform", version = "0.4.2", dev_dependency = True)  # This is main score repo
 bazel_dep(name = "score_virtualization", version = "0.0.1", dev_dependency = True)
 
 # Toolchains and extensions
-bazel_dep(name = "score_toolchains_gcc", version = "0.4", dev_dependency = True)
-bazel_dep(name = "score_toolchains_qnx", version = "0.0.2", dev_dependency = True)
+bazel_dep(name = "score_toolchains_gcc", version = "0.5", dev_dependency = True)
+bazel_dep(name = "score_toolchains_qnx", version = "0.0.5", dev_dependency = True)
 bazel_dep(name = "rust_qnx8_toolchain", version = "1.2.0", dev_dependency = True)
 bazel_dep(name = "score_toolchains_rust", version = "0.1.1", dev_dependency = True)
 
@@ -47,20 +47,11 @@ bazel_dep(name = "googletest", version = "1.14.0")
 
 bazel_dep(name = "score_test_scenarios", version = "0.3.1", dev_dependency = True)
 
-# S-CORE crates
-bazel_dep(name = "score_crates")
-
 # Overrides
 git_override(
     module_name = "score_test_scenarios",
     commit = "2367017e92a65cf4dd2cebeee6d6db3b4d6a1447",
     remote = "https://github.com/qorix-group/testing_tools.git",
-)
-
-git_override(
-    module_name = "score_platform",
-    commit = "bcab25561cdce7bd4eeebdb20b0ba4e2a4becc12",
-    remote = "https://github.com/eclipse-score/score.git",
 )
 
 git_override(
@@ -70,21 +61,9 @@ git_override(
 )
 
 git_override(
-    module_name = "score_toolchains_qnx",
-    commit = "3477ac13a8015a4e2016588fba573c2f9519237d",
-    remote = "https://github.com/eclipse-score/toolchains_qnx.git",
-)
-
-git_override(
     module_name = "score_virtualization",
     commit = "99d3f153c43796b67a63e82aad1ede6a881aa6af",
     remote = "https://github.com/qorix-group/score_virtualization.git",
-)
-
-git_override(
-    module_name = "score_crates",
-    commit = "dcbc6a4d36c9293549397893650c3a7068b0682d",
-    remote = "https://github.com/eclipse-score/score-crates.git",
 )
 
 archive_override(
@@ -157,3 +136,6 @@ register_toolchains(
     "@toolchains_qnx_ifs//:ifs_aarch64",
     dev_dependency = True,
 )
+
+# S-CORE crates
+bazel_dep(name = "score_crates", version = "0.0.5")

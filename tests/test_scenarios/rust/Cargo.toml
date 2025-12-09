@@ -1,0 +1,18 @@
+[package]
+name = "test_scenarios"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+kyron.workspace = true
+kyron-foundation = { workspace = true, features = ["tracing"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+libc.workspace = true
+futures = "0.3.31"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+test_scenarios_rust = { git = "https://github.com/qorix-group/testing_tools.git", rev = "2367017e92a65cf4dd2cebeee6d6db3b4d6a1447" }
+
+[lints.clippy]
+unwrap_used = "deny"

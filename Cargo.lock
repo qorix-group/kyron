@@ -1270,21 +1270,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
-name = "rust_test_scenarios"
-version = "0.0.3"
-dependencies = [
- "futures",
- "kyron",
- "kyron-foundation",
- "libc",
- "serde",
- "serde_json",
- "test_scenarios_rust",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1455,6 +1440,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test_scenarios"
+version = "0.0.3"
+dependencies = [
+ "futures",
+ "kyron",
+ "kyron-foundation",
+ "libc",
+ "serde",
+ "serde_json",
+ "test_scenarios_rust",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

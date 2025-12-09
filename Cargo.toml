@@ -21,7 +21,7 @@ members = [
     "src/kyron-macros",
     "src/logging_tracing",
     "src/xtask",
-    "component_integration_tests/rust_test_scenarios",
+    "tests/test_scenarios/rust",
 ]
 
 

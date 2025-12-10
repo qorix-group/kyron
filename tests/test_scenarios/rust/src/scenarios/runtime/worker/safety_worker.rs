@@ -15,6 +15,7 @@ use crate::internals::runtime_helper::Runtime;
 use crate::internals::thread_params::{current_thread_priority_params, ThreadPriorityParams};
 use kyron::core::types::UniqueWorkerId;
 use kyron::futures::reusable_box_future::ReusableBoxFuturePool;
+use kyron::futures::sleep;
 use kyron::{safety, spawn};
 use serde::Deserialize;
 use serde_json::Value;
@@ -68,6 +69,10 @@ impl Scenario for EnsureSafetyEnabledOutisdeAsyncContext {
 
 async fn failing_task() -> Result<(), String> {
     info!(name = "failing_task");
+    // Note: The task that is awaiting on JoinHandle will be woken up either in safety worker or regular worker.
+    // If the execution of spawned task is completed before awaiting on the JoinHandle, then the awaiting task will be woken up in regular worker.
+    // Simulate work, this helps to wake awaiting task into safety worker after this task fails.
+    sleep::sleep(::core::time::Duration::from_millis(1)).await;
     Err("Intentional failure".to_string())
 }
 struct SafetyWorkerFailedTaskHandling;

@@ -55,11 +55,9 @@ static VTABLE: RawWakerVTable = RawWakerVTable::new(clone_waker, wake, wake_by_r
 ///
 /// Waker will store internally a pointer to the ref counted Task.
 ///
-pub(crate) unsafe fn create_safety_waker(waker: Waker) -> Waker {
-    let raw_waker = RawWaker::new(waker.data(), &VTABLE);
-
-    // Forget original as we took over the ownership, so ref count
-    ::core::mem::forget(waker);
+pub(crate) fn create_safety_waker(ptr: TaskRef) -> Waker {
+    let ptr = TaskRef::into_raw(ptr); // Extracts the pointer from TaskRef not decreasing it's reference count. Since we have a clone here, ref cnt was already increased
+    let raw_waker = RawWaker::new(ptr as *const (), &VTABLE);
 
     // Convert RawWaker to Waker
     unsafe { Waker::from_raw(raw_waker) }

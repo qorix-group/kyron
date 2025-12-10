@@ -542,6 +542,7 @@ pub(crate) fn ctx_get_drivers() -> Drivers {
     .unwrap()
 }
 
+#[allow(dead_code)] // Mock function is used instead of this if mock runtime feature is enabled
 ///
 /// Sets currently running `task`
 ///
@@ -559,6 +560,7 @@ pub(super) fn ctx_set_running_task(task: TaskRef) {
         });
 }
 
+#[allow(dead_code)] // Mock function is used instead of this if mock runtime feature is enabled
 ///
 /// Clears currently running `task`
 ///
@@ -574,6 +576,7 @@ pub(super) fn ctx_unset_running_task() {
         .map_err(|_| {});
 }
 
+#[allow(dead_code)] // Mock function is used instead of this if mock runtime feature is enabled
 ///
 /// Gets currently running `task id`
 ///
@@ -586,6 +589,27 @@ pub(crate) fn ctx_get_running_task_id() -> Option<TaskId> {
             .borrow()
             .as_ref()
             .map(|task| task.id())
+    })
+    .unwrap_or_else(|e| {
+        panic!("Something is really bad here, error {}!", e);
+    })
+}
+
+#[allow(dead_code)] // Mock function is used instead of this if mock runtime feature is enabled
+///
+/// Returns `true` if the running task resulted in safety error
+///
+pub(crate) fn ctx_get_task_safety_error() -> bool {
+    CTX.try_with(|ctx| {
+        // This funcation can be called from a thread outside of Kyron runtime through wake()/wake_by_ref(), so we need to check for ctx presence
+        if let Some(cx) = ctx.borrow().as_ref() {
+            cx.running_task
+                .borrow()
+                .as_ref()
+                .is_some_and(|task| task.get_task_safety_error())
+        } else {
+            false
+        }
     })
     .unwrap_or_else(|e| {
         panic!("Something is really bad here, error {}!", e);

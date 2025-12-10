@@ -128,6 +128,11 @@ impl TaskStateSnapshot {
     }
 
     #[inline(always)]
+    pub(crate) fn unset_join_handle(&mut self) {
+        self.0 &= !TASK_JOIN_HANDLE_ATTACHED;
+    }
+
+    #[inline(always)]
     pub(crate) fn set_running(&mut self) {
         let mask = TASK_STATE_RUNNING | TASK_STATE_IDLE;
         self.0 ^= mask;
@@ -274,7 +279,7 @@ impl TaskState {
     ///
     /// Returns result of transition
     ///
-    pub(crate) fn set_waker(&self) -> bool {
+    pub(crate) fn set_join_handle(&self) -> bool {
         self.fetch_update_with_return(|old: TaskStateSnapshot| {
             if old.is_completed() || old.is_canceled() {
                 return (None, false);
@@ -282,6 +287,25 @@ impl TaskState {
 
             let mut new = old;
             new.set_join_handle();
+            (Some(new), true)
+        })
+    }
+
+    ///
+    /// Unset join handle attached flag if task is not already completed or canceled.
+    ///
+    pub(crate) fn unset_join_handle(&self) -> bool {
+        self.fetch_update_with_return(|old: TaskStateSnapshot| {
+            if old.is_completed() || old.is_canceled() {
+                return (None, false);
+            }
+
+            if !old.has_join_handle() {
+                return (None, true);
+            }
+
+            let mut new = old;
+            new.unset_join_handle();
             (Some(new), true)
         })
     }

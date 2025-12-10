@@ -65,7 +65,7 @@ impl<T: Send + 'static> Future for JoinHandle<T> {
     ///
     fn poll(self: ::core::pin::Pin<&mut Self>, cx: &mut ::core::task::Context<'_>) -> Poll<Self::Output> {
         let res: FutureInternalReturn<JoinResult<T>> = match self.state {
-            FutureState::New => {
+            FutureState::New | FutureState::Polled => {
                 let waker = cx.waker();
 
                 // Set the waker, return values tells what have happen and took care about correct synchronization
@@ -80,6 +80,7 @@ impl<T: Send + 'static> Future for JoinHandle<T> {
 
                     match ret {
                         Ok(v) => FutureInternalReturn::ready(Ok(v)),
+                        Err(CommonErrors::NoData) => FutureInternalReturn::polled(),
                         Err(CommonErrors::OperationAborted) => {
                             FutureInternalReturn::ready(Err(CommonErrors::OperationAborted))
                         },
@@ -87,23 +88,6 @@ impl<T: Send + 'static> Future for JoinHandle<T> {
                             not_recoverable_error!(with e, "There has been an error in a task that is not recoverable ({})!");
                         },
                     }
-                }
-            },
-            FutureState::Polled => {
-                // Safety belows forms AqrRel so waker is really written before we do marking
-                let mut ret: Result<T, CommonErrors> = Err(CommonErrors::NoData);
-                let ret_as_ptr = &mut ret as *mut _;
-                self.for_task.get_return_val(ret_as_ptr as *mut u8);
-
-                match ret {
-                    Ok(v) => FutureInternalReturn::ready(Ok(v)),
-                    Err(CommonErrors::NoData) => FutureInternalReturn::polled(),
-                    Err(CommonErrors::OperationAborted) => {
-                        FutureInternalReturn::ready(Err(CommonErrors::OperationAborted))
-                    },
-                    Err(e) => {
-                        not_recoverable_error!(with e, "There has been an error in a task that is not recoverable ({})!");
-                    },
                 }
             },
             FutureState::Finished => {
@@ -293,6 +277,45 @@ mod tests {
             assert_eq!(poller.poll(), ::core::task::Poll::Ready(Ok(0)));
         }
     }
+
+    #[test]
+    fn test_join_handle_waker_is_set_in_polled_state_also() {
+        let scheduler = create_mock_scheduler();
+
+        {
+            // Data is present before first poll of join handle
+            let worker_id = create_mock_worker_id(0, 1);
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function::<u32>()),
+                &worker_id,
+                scheduler.clone(),
+            ));
+
+            let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
+
+            let mut poller = TestingFuturePoller::new(handle);
+
+            let waker_mock1 = TrackableWaker::new();
+            let waker1 = waker_mock1.get_waker();
+
+            let waker_mock2 = TrackableWaker::new();
+            let waker2 = waker_mock2.get_waker();
+
+            let _ = poller.poll_with_waker(&waker1);
+            // Now in polled state, poll again with waker2
+            let _ = poller.poll_with_waker(&waker2);
+            {
+                let waker = noop_waker();
+                let mut cx = Context::from_waker(&waker);
+                task.poll(&mut cx); // task done
+            }
+
+            assert!(!waker_mock1.was_waked());
+            // this should be TRUE
+            assert!(waker_mock2.was_waked());
+            assert_eq!(poller.poll(), ::core::task::Poll::Ready(Ok(0)));
+        }
+    }
 }
 
 #[cfg(test)]
@@ -315,8 +338,9 @@ mod tests {
 
     #[test]
     fn test_join_handler_mt_get_result() {
-        let builder = Builder::new();
-
+        let mut builder = Builder::new();
+        // Limit preemption to avoid loom error "Model exceeded maximum number of branches."
+        builder.preemption_bound = Some(4);
         builder.check(|| {
             let scheduler = create_mock_scheduler();
 
@@ -342,22 +366,17 @@ mod tests {
 
                 let waker_mock = TrackableWaker::new();
                 let waker = waker_mock.get_waker();
-                let mut was_pending = false;
-
                 loop {
                     match poller.poll_with_waker(&waker) {
                         Poll::Ready(v) => {
                             assert_eq!(v, Ok(1234));
-
-                            if was_pending {
-                                assert!(waker_mock.was_waked());
-                            }
+                            // Note:
+                            // Cannot check whether the waker was woken or not since the waker is set in the join handle poll every time if task is not yet done.
+                            // So depending on the interleaving, the task may finish before the waker is set.
 
                             break;
                         },
-                        Poll::Pending => {
-                            was_pending = true;
-                        },
+                        Poll::Pending => {},
                     }
                     loom::hint::spin_loop();
                 }

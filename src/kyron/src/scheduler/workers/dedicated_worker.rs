@@ -22,7 +22,7 @@ use ::core::task::Context;
 
 use crate::{
     scheduler::{
-        context::{ctx_initialize, ContextBuilder},
+        context::{ctx_initialize, ctx_set_running_task, ContextBuilder},
         driver::Drivers,
         scheduler_mt::{AsyncScheduler, DedicatedScheduler},
         task::async_task::TaskPollResult,
@@ -181,11 +181,12 @@ impl WorkerInner {
     fn run_task(&mut self, task: TaskRef) {
         let waker = create_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
+        ctx_set_running_task(TaskRef::into_raw(task.clone()));
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)
             }
-            TaskPollResult::Notified => {
+            TaskPollResult::Notified | TaskPollResult::SafetyNotified => {
                 // For now stupid respawn
                 self.dedicated_scheduler.spawn(task, self.id.unique_id());
             }

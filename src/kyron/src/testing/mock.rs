@@ -225,6 +225,26 @@ where
     }
 }
 
+// Thread-local storage to track task safety errors
+use crate::scheduler::task::async_task::TaskHeader;
+use ::core::cell::Cell;
+thread_local! {
+    static CTX_TASK_HEADER: Cell<Option<*const TaskHeader>> = const { Cell::new(None) };
+}
+
+#[allow(private_interfaces)]
+pub fn ctx_set_running_task(task: *const TaskHeader) {
+    CTX_TASK_HEADER.set(Some(task));
+}
+
+pub fn ctx_check_running_task_safety_error() -> bool {
+    let mut res = false;
+    if let Some(task) = CTX_TASK_HEADER.take() {
+        res = unsafe { (*(task as *mut TaskHeader)).check_safety_error_and_clear() };
+    }
+    res
+}
+
 ///
 /// Spawns a given `future` into runtime and let it execute on dedicated worker using `worker_id`.
 /// This function allocates a `future` dynamically using [`Box`]

@@ -22,8 +22,8 @@ use kyron_foundation::prelude::*;
 use kyron_foundation::threading::thread_wait_barrier::ThreadReadyNotifier;
 
 use crate::scheduler::{
-    context::{ctx_get_worker_id, ctx_initialize, ContextBuilder},
-    scheduler_mt::AsyncScheduler,
+    context::{ctx_get_worker_id, ctx_initialize, ctx_set_running_task, ContextBuilder},
+    scheduler_mt::{AsyncScheduler, SchedulerTrait},
     task::async_task::*,
     workers::{spawn_thread, ThreadParameters},
 };
@@ -216,6 +216,7 @@ impl WorkerInner {
 
         let waker = create_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
+        ctx_set_running_task(TaskRef::into_raw(task.clone()));
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)
@@ -223,6 +224,9 @@ impl WorkerInner {
             TaskPollResult::Notified => {
                 // For now stupid respawn
                 self.scheduler.spawn_from_runtime(task, &self.producer_consumer);
+            }
+            TaskPollResult::SafetyNotified => {
+                self.scheduler.respawn_into_safety(task);
             }
         }
     }

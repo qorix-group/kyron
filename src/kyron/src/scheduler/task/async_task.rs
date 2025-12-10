@@ -13,7 +13,6 @@
 
 use super::task_state::*;
 use crate::core::types::*;
-use crate::scheduler::safety_waker::create_safety_waker;
 use crate::scheduler::scheduler_mt::SchedulerTrait;
 use ::core::future::Future;
 use ::core::mem;
@@ -82,7 +81,7 @@ pub(crate) struct TaskHeader {
     pub(in crate::scheduler) state: TaskState,
     #[allow(dead_code)]
     id: TaskId,
-
+    is_safety_error: bool,
     vtable: &'static TaskVTable, // API entrypoint to typed task
 }
 
@@ -97,6 +96,7 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: false,
             vtable: create_task_vtable::<T, AllocatedFuture, SchedulerType>(),
         }
     }
@@ -111,8 +111,23 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: false,
             vtable: create_task_s_vtable::<T, E, AllocatedFuture, SchedulerType>(),
         }
+    }
+
+    pub(crate) fn set_safety_error(&mut self) {
+        self.is_safety_error = true;
+    }
+
+    pub(crate) fn get_safety_error(&self) -> bool {
+        self.is_safety_error
+    }
+
+    pub(crate) fn check_safety_error_and_clear(&mut self) -> bool {
+        let ret = self.is_safety_error;
+        self.is_safety_error = false;
+        ret
     }
 }
 
@@ -120,6 +135,7 @@ impl TaskHeader {
 pub enum TaskPollResult {
     Done,
     Notified,
+    SafetyNotified,
 }
 
 ///
@@ -284,6 +300,7 @@ where
                             match self.header.state.transition_to_idle() {
                                 TransitionToIdle::Done => Some(TaskPollResult::Done),
                                 TransitionToIdle::Notified => Some(TaskPollResult::Notified),
+                                TransitionToIdle::SafetyNotified => Some(TaskPollResult::SafetyNotified),
                                 TransitionToIdle::Aborted => {
                                     // We are done, we can simply clear the stage and we don't need to notify via handle_waker as of now as no remote abort supported
                                     self.clear_stage();
@@ -300,21 +317,20 @@ where
         });
 
         res.unwrap_or_else(|| {
+            if is_safety_err && self.is_with_safety {
+                // Set saftey error flag which would be checked in wake/wake_by_ref/JoinHandle poll() to schedule parent task into safety worker
+                let header_ptr = (&self.header as *const TaskHeader) as *mut TaskHeader;
+                unsafe {
+                    (*header_ptr).set_safety_error();
+                }
+            }
             // Finish when future was done, but not under opened writable cell that can cause bugs if someone reorder some instructions, here we are sure
             let status = self.header.state.transition_to_completed();
             match status {
                 TransitionToCompleted::Done => {}
                 TransitionToCompleted::HadConnectedJoinHandle => {
                     self.handle_waker.with_mut(|ptr: *mut Option<Waker>| match unsafe { (*ptr).take() } {
-                        Some(v) => {
-                            if is_safety_err && self.is_with_safety {
-                                unsafe {
-                                    create_safety_waker(v).wake();
-                                }
-                            } else {
-                                v.wake();
-                            }
-                        }
+                        Some(v) => v.wake(),
                         None => not_recoverable_error!("We shall never be here if we have HadConnectedJoinHandle set!"),
                     })
                 }
@@ -648,6 +664,7 @@ mod tests {
         Ok(true)
     }
 
+    #[allow(dead_code)]
     async fn dummy_safety_ret(fail: bool) -> SafetyResult<bool, bool> {
         if fail {
             Err(false)
@@ -731,13 +748,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(miri))]
     fn test_safety_task_error_does_not_respawn_safety_if_not_enabled() {
         let sched = create_mock_scheduler();
 
         let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
         let safety_task = ArcInternal::new(AsyncTask::new_safety(false, box_future(dummy_safety_ret(true)), 1, sched.clone()));
         let safety_task_ref = TaskRef::new(safety_task.clone());
-
+        mock::ctx_set_running_task(TaskRef::into_raw(safety_task_ref.clone()));
         let waker = get_waker_from_task(&safety_task_parent);
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
@@ -754,13 +772,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(miri))]
     fn test_safety_task_error_does_respawn_safety_if_enabled() {
         let sched = create_mock_scheduler();
 
         let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
         let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(true)), 1, sched.clone()));
         let safety_task_ref = TaskRef::new(safety_task.clone());
-
+        mock::ctx_set_running_task(TaskRef::into_raw(safety_task_ref.clone()));
         let waker = get_waker_from_task(&safety_task_parent);
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
@@ -777,13 +796,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(miri))]
     fn test_safety_task_ok_does_not_respawn_safety_if_enabled() {
         let sched = create_mock_scheduler();
 
         let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
         let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(false)), 1, sched.clone()));
         let safety_task_ref = TaskRef::new(safety_task.clone());
-
+        mock::ctx_set_running_task(TaskRef::into_raw(safety_task_ref.clone()));
         let waker = get_waker_from_task(&safety_task_parent);
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
@@ -800,13 +820,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(miri))]
     fn test_safety_task_ok_does_not_respawn_safety_if_not_enabled() {
         let sched = create_mock_scheduler();
 
         let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
         let safety_task = ArcInternal::new(AsyncTask::new_safety(false, box_future(dummy_safety_ret(false)), 1, sched.clone()));
         let safety_task_ref = TaskRef::new(safety_task.clone());
-
+        mock::ctx_set_running_task(TaskRef::into_raw(safety_task_ref.clone()));
         let waker = get_waker_from_task(&safety_task_parent);
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 

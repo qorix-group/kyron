@@ -40,6 +40,7 @@ const TASK_NOTIFIED_SAFETY: u32 = 0b0100_0000;
 pub enum TransitionToIdle {
     Done,
     Notified,
+    SafetyNotified,
     Aborted,
 }
 
@@ -241,8 +242,9 @@ impl TaskState {
             }
 
             let mut state = TransitionToIdle::Done;
-
-            if prev.is_notified() {
+            if prev.is_safety_notified() {
+                state = TransitionToIdle::SafetyNotified;
+            } else if prev.is_notified() {
                 // If notified once we want to go into idle, we need to reschedule on our own since the notifier did not rescheduled it
                 state = TransitionToIdle::Notified;
             }

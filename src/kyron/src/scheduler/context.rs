@@ -16,6 +16,7 @@ use crate::core::types::FutureBox;
 use crate::futures::reusable_box_future::ReusableBoxFuture;
 use crate::safety::SafetyResult;
 use crate::scheduler::driver::Drivers;
+use crate::scheduler::task::async_task::TaskHeader;
 use ::core::future::Future;
 use core::cell::Cell;
 use core::cell::RefCell;
@@ -318,6 +319,9 @@ pub(crate) struct WorkerContext {
     /// Helper flag to check if safety was enabled in runtime builder
     is_safety_enabled: bool,
 
+    /// The task that is currently run by worker
+    running_task: Cell<Option<*const TaskHeader>>,
+
     wakeup_time: Cell<Option<u64>>,
 }
 
@@ -399,6 +403,7 @@ impl ContextBuilder {
             worker_id: Cell::new(self.worker_id.expect("Worker type must be set in context builder!")),
             handler: RefCell::new(Some(Rc::new(self.handle.expect("Handler type must be set in context builder!")))),
             is_safety_enabled: self.is_with_safety,
+            running_task: Cell::new(None),
             wakeup_time: Cell::new(None),
             drivers: Some(self.drivers),
         }
@@ -450,6 +455,33 @@ pub(crate) fn ctx_get_worker_id() -> WorkerId {
 pub(crate) fn ctx_is_with_safety() -> bool {
     CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").is_safety_enabled)
         .unwrap_or_default()
+}
+
+///
+/// Set currently running task of the worker
+///
+pub(crate) fn ctx_set_running_task(task: *const TaskHeader) {
+    CTX.try_with(|ctx| {
+        ctx.borrow().as_ref().expect("Called before CTX init?").running_task.set(Some(task));
+    })
+    .unwrap_or_default();
+}
+
+#[allow(dead_code)]
+///
+/// Check whether there is any safety error for the running task of the worker and clear it
+///
+pub(crate) fn ctx_check_running_task_safety_error() -> bool {
+    CTX.try_with(|ctx| {
+        let mut binding = ctx.borrow_mut();
+        let ctx = binding.as_mut().expect("Called before CTX init?");
+        let mut res = false;
+        if let Some(task) = ctx.running_task.take() {
+            res = unsafe { (*(task as *mut TaskHeader)).check_safety_error_and_clear() };
+        }
+        res
+    })
+    .unwrap_or_default()
 }
 
 pub(crate) fn ctx_set_wakeup_time(time: u64) {

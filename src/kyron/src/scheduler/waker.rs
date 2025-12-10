@@ -14,6 +14,7 @@
 use kyron_foundation::prelude::FoundationAtomicPtr;
 
 use super::task::async_task::*;
+use crate::scheduler::task::task_context::TaskContext;
 use core::task::{RawWaker, RawWakerVTable, Waker};
 
 fn clone_waker(data: *const ()) -> RawWaker {
@@ -31,15 +32,21 @@ fn clone_waker(data: *const ()) -> RawWaker {
 fn wake(data: *const ()) {
     let task_header_ptr = data as *const TaskHeader;
     let task_ref = unsafe { TaskRef::from_raw(task_header_ptr) };
-
-    task_ref.schedule();
+    if TaskContext::should_wake_task_into_safety() {
+        task_ref.schedule_safety();
+    } else {
+        task_ref.schedule();
+    }
 }
 
 fn wake_by_ref(data: *const ()) {
     let task_header_ptr = data as *const TaskHeader;
     let task_ref = unsafe { TaskRef::from_raw(task_header_ptr) };
-
-    task_ref.schedule_by_ref();
+    if TaskContext::should_wake_task_into_safety() {
+        task_ref.schedule_safety_by_ref();
+    } else {
+        task_ref.schedule_by_ref();
+    }
 
     ::core::mem::forget(task_ref); // don't touch refcount from our data since this is done by drop_waker
 }

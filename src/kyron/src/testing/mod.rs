@@ -61,7 +61,9 @@ impl SchedulerTrait for SchedulerSyncMock {
     }
 
     fn respawn_into_safety(&self, _task: TaskRef) {
-        todo!()
+        //todo!()
+        *self.mtx.lock().unwrap() = true;
+        self.cv.notify_one();
     }
 }
 

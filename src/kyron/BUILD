@@ -100,3 +100,15 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = _EXAMPLE_DEPS,
 )
+
+rust_binary(
+    name = "safety_task",
+    srcs = [
+        "examples/safety_task.rs",
+    ],
+    proc_macro_deps = [
+        "//src/kyron-macros:runtime_macros",
+    ],
+    visibility = ["//visibility:public"],
+    deps = _EXAMPLE_DEPS,
+)

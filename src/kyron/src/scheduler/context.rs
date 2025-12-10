@@ -318,6 +318,9 @@ pub(crate) struct WorkerContext {
     /// Helper flag to check if safety was enabled in runtime builder
     is_safety_enabled: bool,
 
+    /// This flag is used to schedule parent task of failing safety task into safety worker
+    schedule_safety: Cell<bool>,
+
     wakeup_time: Cell<Option<u64>>,
 }
 
@@ -399,6 +402,7 @@ impl ContextBuilder {
             worker_id: Cell::new(self.worker_id.expect("Worker type must be set in context builder!")),
             handler: RefCell::new(Some(Rc::new(self.handle.expect("Handler type must be set in context builder!")))),
             is_safety_enabled: self.is_with_safety,
+            schedule_safety: Cell::new(false),
             wakeup_time: Cell::new(None),
             drivers: Some(self.drivers),
         }
@@ -442,6 +446,31 @@ pub(crate) fn ctx_get_worker_id() -> WorkerId {
     .unwrap_or_else(|e| {
         panic!("Something is really bad here, error {}!", e);
     })
+}
+
+///
+/// Set schedule safety flag
+///
+#[allow(dead_code)] // To avoid error when runtime mocking feature is enabled
+pub(crate) fn ctx_set_schedule_safety(val: bool) {
+    CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").schedule_safety.set(val))
+        .unwrap_or_default();
+}
+
+///
+/// Get schedule safety flag and clear
+///
+#[allow(dead_code)]
+pub(crate) fn ctx_get_schedule_safety() -> bool {
+    CTX.try_with(|ctx| {
+        // This funcation can be called from a thread outside of Kyron runtime through wake()/wake_by_ref(), so we need to check for ctx presence
+        if let Some(cx) = ctx.borrow().as_ref() {
+            cx.schedule_safety.replace(false)
+        } else {
+            false
+        }
+    })
+    .unwrap_or_default()
 }
 
 ///

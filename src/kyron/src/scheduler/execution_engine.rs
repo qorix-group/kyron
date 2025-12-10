@@ -541,7 +541,8 @@ mod tests {
     #[test]
     #[cfg(not(miri))] // Provenance issues
     fn create_engine_with_worker_and_verify_ids() {
-        use crate::scheduler::context::{ctx_get_running_task_id, ctx_get_worker_id};
+        use crate::scheduler::context::ctx_get_worker_id;
+        use crate::testing::mock_context::ctx_get_running_task_id;
         let mut engine = ExecutionEngineBuilder::new()
             .workers(1)
             .task_queue_size(16)

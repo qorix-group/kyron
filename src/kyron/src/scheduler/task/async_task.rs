@@ -13,9 +13,9 @@
 
 use super::task_state::*;
 use crate::core::types::*;
-use crate::scheduler::safety_waker::create_safety_waker;
 use crate::scheduler::scheduler_mt::SchedulerTrait;
 use crate::scheduler::workers::worker_types::WorkerId;
+use ::core::cell::Cell;
 use ::core::future::Future;
 use ::core::mem;
 use ::core::ops::{Deref, DerefMut};
@@ -82,7 +82,7 @@ pub(crate) enum TaskStage<T, ResultType> {
 pub(crate) struct TaskHeader {
     pub(in crate::scheduler) state: TaskState,
     id: TaskId,
-
+    is_safety_error: Cell<bool>, // Flag to indicate whether task resulted in safety error
     vtable: &'static TaskVTable, // API entrypoint to typed task
 }
 
@@ -97,6 +97,7 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: Cell::new(false),
             vtable: create_task_vtable::<T, AllocatedFuture, SchedulerType>(),
         }
     }
@@ -111,8 +112,17 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: Cell::new(false),
             vtable: create_task_s_vtable::<T, E, AllocatedFuture, SchedulerType>(),
         }
+    }
+
+    pub(crate) fn set_safety_error(&self) {
+        self.is_safety_error.set(true);
+    }
+
+    pub(crate) fn get_safety_error(&self) -> bool {
+        self.is_safety_error.get()
     }
 }
 
@@ -210,13 +220,20 @@ where
     }
 
     pub(crate) fn set_waker(&self, waker: Waker) -> bool {
-        unsafe {
-            self.handle_waker.with_mut(|ptr| {
-                *ptr = Some(waker);
-            })
+        // Safety: Unset join handle flag before setting waker, the flag would have been set previously in the first poll of join handle.
+        // If flag is not cleared, another worker finishing the task will see the flag set and
+        // read the waker to call wake() while it is written here
+        if self.header.state.unset_join_handle() {
+            unsafe {
+                self.handle_waker.with_mut(|ptr| {
+                    *ptr = Some(waker);
+                })
+            };
+
+            return self.header.state.set_join_handle();
         }
 
-        self.header.state.set_waker() // Safety: makes sure storing waker is not reordered behind this operation
+        false
     }
 
     ///
@@ -316,12 +333,10 @@ where
                         .with_mut(|ptr: *mut Option<Waker>| match unsafe { (*ptr).take() } {
                             Some(v) => {
                                 if is_safety_err && self.is_with_safety {
-                                    unsafe {
-                                        create_safety_waker(v).wake();
-                                    }
-                                } else {
-                                    v.wake();
+                                    // Set saftey error flag which will be checked in wake()/wkae_by_ref() to schedule parent task into safety worker
+                                    self.header.set_safety_error();
                                 }
+                                v.wake();
                             },
                             None => {
                                 not_recoverable_error!("We shall never be here if we have HadConnectedJoinHandle set!")
@@ -624,6 +639,10 @@ impl TaskRef {
         snapshot.is_completed() || snapshot.is_canceled()
     }
 
+    pub(crate) fn get_task_safety_error(&self) -> bool {
+        unsafe { self.header.as_ref().get_safety_error() }
+    }
+
     pub(crate) fn id(&self) -> TaskId {
         unsafe { self.header.as_ref().id }
     }
@@ -651,7 +670,10 @@ mod tests {
         safety::SafetyResult,
         scheduler::{
             scheduler_mt::SchedulerTrait,
-            task::async_task::{TaskId, TaskRef},
+            task::{
+                async_task::{TaskId, TaskRef},
+                task_context::TaskContextGuard,
+            },
         },
         testing::*,
     };
@@ -788,6 +810,7 @@ mod tests {
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(safety_task_ref.clone());
         assert_eq!(safety_task_ref.poll(&mut ctx), TaskPollResult::Done);
 
         let mut result: SafetyResult<bool, bool> = Ok(true);
@@ -816,6 +839,7 @@ mod tests {
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(safety_task_ref.clone());
         assert_eq!(safety_task_ref.poll(&mut ctx), TaskPollResult::Done);
 
         let mut result: SafetyResult<bool, bool> = Ok(true);
@@ -844,6 +868,7 @@ mod tests {
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(safety_task_ref.clone());
         assert_eq!(safety_task_ref.poll(&mut ctx), TaskPollResult::Done);
 
         let mut result: SafetyResult<bool, bool> = Ok(true);
@@ -872,6 +897,7 @@ mod tests {
         safety_task_ref.set_join_handle_waker(waker.clone()); // Mimic that JoinHandler is set
 
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(safety_task_ref.clone());
         assert_eq!(safety_task_ref.poll(&mut ctx), TaskPollResult::Done);
 
         let mut result: SafetyResult<bool, bool> = Ok(true);

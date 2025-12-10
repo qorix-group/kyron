@@ -46,7 +46,8 @@ pub fn ensure_safety_enabled() {
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn<F, T, E>(future: F) -> JoinHandle<F::Output>
 where
@@ -64,7 +65,8 @@ where
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn_from_boxed<T, E>(boxed: FutureBox<SafetyResult<T, E>>) -> JoinHandle<SafetyResult<T, E>>
 where
@@ -88,7 +90,8 @@ where
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn_from_reusable<T, E>(reusable: ReusableBoxFuture<SafetyResult<T, E>>) -> JoinHandle<SafetyResult<T, E>>
 where
@@ -113,7 +116,8 @@ where
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn_on_dedicated<F, T, E>(future: F, worker_id: UniqueWorkerId) -> JoinHandle<F::Output>
 where
@@ -131,7 +135,8 @@ where
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn_from_boxed_on_dedicated<T, E>(
     boxed: FutureBox<SafetyResult<T, E>>,
@@ -158,7 +163,8 @@ where
 ///
 /// # Safety
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
-/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
+/// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in either `SafetyWorker` or regular worker.
+/// Assumption of Use is that the task that is running on SafetyWorker never blocks.
 ///
 pub fn spawn_from_reusable_on_dedicated<T, E>(
     reusable: ReusableBoxFuture<SafetyResult<T, E>>,

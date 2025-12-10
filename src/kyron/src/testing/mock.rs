@@ -16,7 +16,11 @@
 use crate::{
     core::types::{box_future, FutureBox, UniqueWorkerId},
     futures::reusable_box_future::ReusableBoxFuture,
-    scheduler::{join_handle::JoinHandle, task::async_task::TaskRef, waker::create_waker},
+    scheduler::{
+        join_handle::JoinHandle,
+        task::{async_task::TaskRef, task_context::TaskContextGuard},
+        waker::create_waker,
+    },
     testing::*,
 };
 use ::core::{cell::RefCell, future::Future, sync::atomic, task::Context};
@@ -95,7 +99,7 @@ pub mod runtime {
         while let Some(task) = dequeue_task() {
             let waker = create_waker(task.clone());
             let mut ctx = Context::from_waker(&waker);
-
+            let _guard = TaskContextGuard::new(task.clone());
             task.poll(&mut ctx);
             if !task.is_done() {
                 to_enqueue.push(task);

@@ -11,12 +11,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // *******************************************************************************
 
+#[cfg(not(any(test, feature = "runtime-api-mock")))]
+use crate::scheduler::context::{
+    ctx_get_running_task_id, ctx_get_task_safety_error, ctx_set_running_task, ctx_unset_running_task,
+};
+#[cfg(any(test, feature = "runtime-api-mock"))]
+use crate::testing::mock_context::{
+    ctx_get_running_task_id, ctx_get_task_safety_error, ctx_set_running_task, ctx_unset_running_task,
+};
 use crate::{
     core::types::TaskId,
-    scheduler::{
-        context::{ctx_get_running_task_id, ctx_get_worker_id, ctx_set_running_task, ctx_unset_running_task},
-        workers::worker_types::WorkerId,
-    },
+    scheduler::{context::ctx_get_worker_id, workers::worker_types::WorkerId},
     TaskRef,
 };
 
@@ -32,6 +37,11 @@ impl TaskContext {
     /// Get the TaskId of the currently executing task, if any. Usage of this outside runtime causes panic.
     pub fn task_id() -> Option<TaskId> {
         ctx_get_running_task_id()
+    }
+
+    /// Check whether the running task resulted in safety error to schedule parent into safety worker
+    pub(crate) fn should_wake_task_into_safety() -> bool {
+        ctx_get_task_safety_error()
     }
 }
 

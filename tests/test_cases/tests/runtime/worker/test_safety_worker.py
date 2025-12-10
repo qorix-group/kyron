@@ -120,7 +120,6 @@ class TestEnsureSafetyOutsideAsyncContext(CitScenario):
 # region safety worker core
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestTaskHandling(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
@@ -169,7 +168,6 @@ class TestTaskHandling(CitScenario):
         )
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestNestedTaskHandling(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
@@ -425,7 +423,6 @@ class ThreadParametersBase(CitScenario):
 
 @pytest.mark.root_required
 @pytest.mark.skipif("WSL" in platform(), reason="Not supported on WSL")
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSafeWorkerThreadParameters(ThreadParametersBase):
     @pytest.fixture(scope="class")
     def scheduler(self) -> str:
@@ -481,7 +478,6 @@ class ThreadParametersNegativeBase(ThreadParametersBase):
 
 @pytest.mark.root_required
 @pytest.mark.skipif("WSL" in platform(), reason="Not supported on WSL")
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSafeWorkerMissingThreadParameterScheduler(ThreadParametersNegativeBase):
     @pytest.fixture(scope="class")
     def priority(self) -> int:
@@ -502,7 +498,6 @@ class TestSafeWorkerMissingThreadParameterScheduler(ThreadParametersNegativeBase
 
 @pytest.mark.root_required
 @pytest.mark.skipif("WSL" in platform(), reason="Not supported on WSL")
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSafeWorkerMissingThreadParameterPriority(ThreadParametersNegativeBase):
     @pytest.fixture(scope="class")
     def scheduler(self) -> str:
@@ -523,7 +518,6 @@ class TestSafeWorkerMissingThreadParameterPriority(ThreadParametersNegativeBase)
 
 @pytest.mark.root_required
 @pytest.mark.skipif("WSL" in platform(), reason="Not supported on WSL")
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSafeWorkerMissingThreadParameters(ThreadParametersNegativeBase):
     @pytest.fixture(scope="class")
     def test_config(self) -> dict[str, Any]:
@@ -540,7 +534,6 @@ class TestSafeWorkerMissingThreadParameters(ThreadParametersNegativeBase):
 # region spawn methods
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSpawnFromBoxed(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
@@ -569,14 +562,12 @@ class TestSpawnFromBoxed(CitScenario):
         )
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSpawnFromReusable(TestSpawnFromBoxed):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
         return "runtime.worker.safety_worker.spawn_from_reusable"
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSpawnOnDedicated(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
@@ -610,14 +601,12 @@ class TestSpawnOnDedicated(CitScenario):
         assert len(all_thread_ids) == 3, "Each task should be executed on its own thread"
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSpawnFromBoxedOnDedicated(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
         return "runtime.worker.safety_worker.spawn_from_boxed_on_dedicated"
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/397")
 class TestSpawnFromReusableOnDedicated(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:

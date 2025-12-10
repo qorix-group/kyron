@@ -13,8 +13,8 @@
 
 use super::task_state::*;
 use crate::core::types::*;
-use crate::scheduler::safety_waker::create_safety_waker;
 use crate::scheduler::scheduler_mt::SchedulerTrait;
+use crate::scheduler::task::task_context::TaskContext;
 use ::core::future::Future;
 use ::core::mem;
 use ::core::ops::{Deref, DerefMut};
@@ -82,8 +82,8 @@ pub(crate) struct TaskHeader {
     pub(in crate::scheduler) state: TaskState,
     #[allow(dead_code)]
     id: TaskId,
-
-    vtable: &'static TaskVTable, // API entrypoint to typed task
+    is_safety_error: UnsafeCell<bool>, // Flag to indicate whether task resulted in safety error
+    vtable: &'static TaskVTable,       // API entrypoint to typed task
 }
 
 impl TaskHeader {
@@ -97,6 +97,7 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: UnsafeCell::new(false),
             vtable: create_task_vtable::<T, AllocatedFuture, SchedulerType>(),
         }
     }
@@ -111,8 +112,19 @@ impl TaskHeader {
         Self {
             state: TaskState::new(),
             id: TaskId::new(worker_id),
+            is_safety_error: UnsafeCell::new(false),
             vtable: create_task_s_vtable::<T, E, AllocatedFuture, SchedulerType>(),
         }
+    }
+
+    pub(crate) fn set_safety_error(&self) {
+        self.is_safety_error.with_mut(|ptr| {
+            unsafe { *ptr = true };
+        })
+    }
+
+    pub(crate) fn get_safety_error(&self) -> bool {
+        self.is_safety_error.with(|ptr| unsafe { *ptr })
     }
 }
 
@@ -203,13 +215,20 @@ where
     }
 
     pub(crate) fn set_waker(&self, waker: Waker) -> bool {
-        unsafe {
-            self.handle_waker.with_mut(|ptr| {
-                *ptr = Some(waker);
-            })
+        // Safety: Unset join handle flag before setting waker, the flag would have been set previously in the first poll of join handle.
+        // If flag is not cleared, another worker finishing the task will see the flag set and
+        // read the waker to call wake() while it is written here
+        if self.header.state.unset_join_handle() {
+            unsafe {
+                self.handle_waker.with_mut(|ptr| {
+                    *ptr = Some(waker);
+                })
+            };
+
+            return self.header.state.set_join_handle();
         }
 
-        self.header.state.set_waker() // Safety: makes sure storing waker is not reordered behind this operation
+        false
     }
 
     ///
@@ -300,6 +319,10 @@ where
         });
 
         res.unwrap_or_else(|| {
+            if is_safety_err && self.is_with_safety {
+                // Set saftey error flag which would be checked in JoinHandle poll() to schedule parent task into safety worker
+                self.header.set_safety_error();
+            }
             // Finish when future was done, but not under opened writable cell that can cause bugs if someone reorder some instructions, here we are sure
             let status = self.header.state.transition_to_completed();
             match status {
@@ -308,12 +331,9 @@ where
                     self.handle_waker.with_mut(|ptr: *mut Option<Waker>| match unsafe { (*ptr).take() } {
                         Some(v) => {
                             if is_safety_err && self.is_with_safety {
-                                unsafe {
-                                    create_safety_waker(v).wake();
-                                }
-                            } else {
-                                v.wake();
+                                TaskContext::set_flag_to_wake_parent_task_into_safety();
                             }
+                            v.wake();
                         }
                         None => not_recoverable_error!("We shall never be here if we have HadConnectedJoinHandle set!"),
                     })
@@ -612,6 +632,14 @@ impl TaskRef {
         let snapshot = unsafe { self.header.as_ref().state.get() };
 
         snapshot.is_completed() || snapshot.is_canceled()
+    }
+
+    pub(crate) fn get_task_safety_error(&self) -> bool {
+        unsafe { self.header.as_ref().get_safety_error() }
+    }
+
+    pub(crate) fn is_safety_notified(&self) -> bool {
+        unsafe { self.header.as_ref().state.get().is_safety_notified() }
     }
 }
 

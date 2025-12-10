@@ -16,7 +16,12 @@
 use crate::{
     core::types::{box_future, FutureBox, UniqueWorkerId},
     futures::reusable_box_future::ReusableBoxFuture,
-    scheduler::{join_handle::JoinHandle, task::async_task::TaskRef, waker::create_waker},
+    scheduler::{
+        join_handle::JoinHandle,
+        task::async_task::TaskRef,
+        waker::create_waker,
+        workers::worker_types::{WorkerId, WorkerType},
+    },
     testing::*,
 };
 use ::core::{cell::RefCell, future::Future, sync::atomic, task::Context};
@@ -225,6 +230,23 @@ where
     }
 }
 
+// Thread-local storage to set/get schedule safety flag
+use ::core::cell::Cell;
+thread_local! {
+    static CTX_SCHEDULE_SAFETY: Cell<bool> = const { Cell::new(false) };
+}
+
+pub fn ctx_set_schedule_safety(val: bool) {
+    CTX_SCHEDULE_SAFETY.set(val);
+}
+
+pub fn ctx_get_schedule_safety() -> bool {
+    CTX_SCHEDULE_SAFETY.replace(true)
+}
+#[allow(private_interfaces)]
+pub fn ctx_get_worker_id() -> WorkerId {
+    WorkerId::new(UniqueWorkerId::from("test_worker"), 0, 0, WorkerType::Async)
+}
 ///
 /// Spawns a given `future` into runtime and let it execute on dedicated worker using `worker_id`.
 /// This function allocates a `future` dynamically using [`Box`]

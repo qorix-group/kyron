@@ -23,9 +23,9 @@ use crate::{
     scheduler::{
         context::{ctx_initialize, ContextBuilder},
         driver::Drivers,
+        safety_waker::create_safety_waker,
         scheduler_mt::{AsyncScheduler, DedicatedScheduler},
         task::async_task::TaskPollResult,
-        waker::create_waker,
     },
     TaskRef,
 };
@@ -170,7 +170,7 @@ impl WorkerInner {
     }
 
     fn run_task(&mut self, task: TaskRef) {
-        let waker = create_waker(task.clone());
+        let waker = create_safety_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {

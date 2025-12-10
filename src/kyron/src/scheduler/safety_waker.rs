@@ -12,6 +12,7 @@
 //
 
 use super::task::async_task::*;
+use crate::scheduler::task::task_context::TaskContext;
 use core::task::{RawWaker, RawWakerVTable, Waker};
 
 fn clone_waker(data: *const ()) -> RawWaker {
@@ -30,6 +31,9 @@ fn wake(data: *const ()) {
     let task_header_ptr = data as *const TaskHeader;
     let task_ref = unsafe { TaskRef::from_raw(task_header_ptr) };
 
+    // Just clear the flag which might have been set by async worker before calling wake/wake_by_ref
+    // for the scenario where the join handle poll is executed by safety worker and waker is set
+    TaskContext::clear_schedule_safety_flag();
     task_ref.schedule_safety();
 }
 
@@ -37,6 +41,8 @@ fn wake_by_ref(data: *const ()) {
     let task_header_ptr = data as *const TaskHeader;
     let task_ref = unsafe { TaskRef::from_raw(task_header_ptr) };
 
+    // Just clear the flag which might have been set by async worker before calling wake/wake_by_ref
+    TaskContext::clear_schedule_safety_flag();
     task_ref.schedule_safety_by_ref();
 
     ::core::mem::forget(task_ref); // don't touch refcount from our data since this is done by drop_waker
@@ -55,11 +61,9 @@ static VTABLE: RawWakerVTable = RawWakerVTable::new(clone_waker, wake, wake_by_r
 ///
 /// Waker will store internally a pointer to the ref counted Task.
 ///
-pub(crate) unsafe fn create_safety_waker(waker: Waker) -> Waker {
-    let raw_waker = RawWaker::new(waker.data(), &VTABLE);
-
-    // Forget original as we took over the ownership, so ref count
-    ::core::mem::forget(waker);
+pub(crate) fn create_safety_waker(ptr: TaskRef) -> Waker {
+    let ptr = TaskRef::into_raw(ptr); // Extracts the pointer from TaskRef not decreasing it's reference count. Since we have a clone here, ref cnt was already increased
+    let raw_waker = RawWaker::new(ptr as *const (), &VTABLE);
 
     // Convert RawWaker to Waker
     unsafe { Waker::from_raw(raw_waker) }

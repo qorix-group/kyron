@@ -88,3 +88,15 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = _EXAMPLE_DEPS,
 )
+
+rust_binary(
+    name = "main_macro",
+    srcs = [
+        "examples/main_macro.rs",
+    ],
+    proc_macro_deps = [
+        "//src/kyron-macros:runtime_macros",
+    ],
+    visibility = ["//visibility:public"],
+    deps = _EXAMPLE_DEPS,
+)

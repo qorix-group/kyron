@@ -862,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "kyron"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "iceoryx2",
  "iceoryx2-cal",
@@ -877,7 +877,7 @@ dependencies = [
 
 [[package]]
 name = "kyron-foundation"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "iceoryx2-bb-container",
  "iceoryx2-bb-derive-macros",
@@ -898,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "kyron-macros"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -907,14 +907,14 @@ dependencies = [
 
 [[package]]
 name = "kyron-testing"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "kyron-foundation",
 ]
 
 [[package]]
 name = "kyron-testing-macros"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "quote",
  "syn",
@@ -974,7 +974,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "logging_tracing"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "env_logger",
  "iceoryx2",
@@ -1444,7 +1444,7 @@ dependencies = [
 
 [[package]]
 name = "test_scenarios"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "futures",
  "kyron",
@@ -2036,4 +2036,4 @@ checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
 
 [[package]]
 name = "xtask"
-version = "0.0.3"
+version = "0.0.4"

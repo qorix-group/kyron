@@ -23,7 +23,7 @@ where
 pub struct ConnectionParameters {
     #[serde(flatten, deserialize_with = "deserialize_socket_addr")]
     address: SocketAddr,
-    ttl: Option<u32>,
+    ttl: Option<u8>,
 }
 
 impl ConnectionParameters {

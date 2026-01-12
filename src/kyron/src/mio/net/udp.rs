@@ -75,8 +75,8 @@ impl<T: IoSelector> UdpSocketBridge<T> {
         self.inner.as_inner().ttl()
     }
 
-    pub fn set_ttl(&self, ttl: u32) -> IoResult<()> {
-        self.inner.as_inner().set_ttl(ttl)
+    pub fn set_ttl(&self, ttl: u8) -> IoResult<()> {
+        self.inner.as_inner().set_ttl(ttl as u32)
     }
 
     pub fn local_addr(&self) -> IoResult<SocketAddr> {

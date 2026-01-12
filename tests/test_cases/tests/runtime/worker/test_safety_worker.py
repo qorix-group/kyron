@@ -310,7 +310,6 @@ class TestQueuedSafetyWorkerTasks(CitScenario):
         assert len(failing_tasks) == task_count
 
 
-@pytest.mark.xfail(reason="https://github.com/qorix-group/inc_orchestrator_internal/issues/396")
 class TestSafeWorkerHeavyLoad(CitScenario):
     @pytest.fixture(scope="class")
     def scenario_name(self) -> str:
@@ -331,6 +330,7 @@ class TestSafeWorkerHeavyLoad(CitScenario):
                 "task_queue_size": 2048,
                 "workers": 4,
                 "safety_worker": {},
+                "safety_worker_task_queue_size": 512,
             },
             "test": {
                 "successful_tasks": successful_task_count,

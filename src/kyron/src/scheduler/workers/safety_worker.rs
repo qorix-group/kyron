@@ -38,8 +38,6 @@ use super::{spawn_thread, worker_types::WorkerId, ThreadParameters};
 ///
 const LOCAL_STORAGE_SIZE_REDUCTION: usize = 8;
 
-const SAFETY_QUEUE_SIZE: usize = 64; // For now hardcoded
-
 pub(crate) struct SafetyWorker {
     thread_handle: Option<Thread>,
     id: WorkerId,
@@ -49,11 +47,11 @@ pub(crate) struct SafetyWorker {
 }
 
 impl SafetyWorker {
-    pub(crate) fn new(id: WorkerId, thread_params: ThreadParameters) -> Self {
+    pub(crate) fn new(id: WorkerId, thread_params: ThreadParameters, safety_queue_size: u32) -> Self {
         SafetyWorker {
             id,
             thread_handle: None,
-            queue: Arc::new(TriggerQueue::new(SAFETY_QUEUE_SIZE)),
+            queue: Arc::new(TriggerQueue::new(safety_queue_size as usize)),
             stop_signal: Arc::new(FoundationAtomicBool::new(false)),
             thread_params,
         }

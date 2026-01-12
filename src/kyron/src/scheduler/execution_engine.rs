@@ -227,6 +227,7 @@ pub struct ExecutionEngineBuilder {
 
     dedicated_workers_ids: GrowableVec<(UniqueWorkerId, ThreadParameters)>,
     with_safe_worker: (bool, ThreadParameters), //enabled, params
+    safety_worker_queue_size: u32,
 }
 
 impl Default for ExecutionEngineBuilder {
@@ -242,6 +243,7 @@ impl ExecutionEngineBuilder {
             queue_size: 256,
             dedicated_workers_ids: GrowableVec::new(2),
             with_safe_worker: (false, ThreadParameters::default()),
+            safety_worker_queue_size: 64,
             thread_params: ThreadParameters::default(),
         }
     }
@@ -312,6 +314,17 @@ impl ExecutionEngineBuilder {
     }
 
     ///
+    /// Configure safety worker task queue size with `size`.
+    /// >ATTENTION: `size` has to be power of two and safety worker shall be enabled prior to queue size configuration.
+    ///
+    pub fn safety_worker_task_queue_size(mut self, size: u32) -> Self {
+        assert!(size.is_power_of_two(), "Safety worker task queue size ({}) must be power of two", size);
+        assert!(self.with_safe_worker.0, "Enable safety worker prior to configuring its queue size.");
+        self.safety_worker_queue_size = size;
+        self
+    }
+
+    ///
     /// Adds new dedicated worker identified by `id` to the engine with given thread parameters `params`.
     /// If priority or scheduler type is `None`, then both attributes will be inherited from parent thread.
     #[allow(dead_code)]
@@ -341,7 +354,11 @@ impl ExecutionEngineBuilder {
         let safety_worker_queue;
         let safety_worker = {
             if self.with_safe_worker.0 {
-                let w = SafetyWorker::new(WorkerId::new("SafetyWorker".into(), 0, 0, WorkerType::Dedicated), self.with_safe_worker.1);
+                let w = SafetyWorker::new(
+                    WorkerId::new("SafetyWorker".into(), 0, 0, WorkerType::Dedicated),
+                    self.with_safe_worker.1,
+                    self.safety_worker_queue_size,
+                );
                 safety_worker_queue = Some(w.get_queue());
                 Some(w)
             } else {

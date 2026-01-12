@@ -47,6 +47,7 @@ pub struct DedicatedWorkerConfig {
 pub struct ExecEngineConfig {
     pub task_queue_size: u32,
     pub workers: usize,
+    pub safety_worker_task_queue_size: Option<u32>,
     #[serde(flatten)]
     pub thread_parameters: ThreadParameters,
     pub dedicated_workers: Option<Vec<DedicatedWorkerConfig>>,
@@ -135,6 +136,9 @@ impl Runtime {
             if let Some(safety_worker) = &exec_engine.safety_worker {
                 let safety_worker_thread_params = self.set_thread_params(safety_worker);
                 exec_engine_builder = exec_engine_builder.enable_safety_worker(safety_worker_thread_params);
+                if let Some(queue_size) = exec_engine.safety_worker_task_queue_size {
+                    exec_engine_builder = exec_engine_builder.safety_worker_task_queue_size(queue_size);
+                }
             }
 
             let (builder, _) = async_rt_builder.with_engine(exec_engine_builder);

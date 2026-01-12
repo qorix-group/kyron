@@ -23,6 +23,7 @@ struct MacroArgs {
     worker_thread_parameters: Option<ThreadParams>,
     safety_worker: Option<bool>,
     safety_worker_thread_parameters: Option<ThreadParams>,
+    safety_worker_task_queue_size: Option<Expr>,
     dedicated_workers: Vec<DedicatedWorker>,
 }
 
@@ -34,6 +35,7 @@ impl MacroArgs {
             worker_thread_parameters: None,
             safety_worker: None,
             safety_worker_thread_parameters: None,
+            safety_worker_task_queue_size: None,
             dedicated_workers: Vec::new(),
         }
     }
@@ -102,6 +104,10 @@ impl Parse for MacroArgs {
                 "safety_worker_thread_parameters" => {
                     let tp: ThreadParams = parse_braced_thread_params(&input)?;
                     args.safety_worker_thread_parameters = Some(tp);
+                }
+                "safety_worker_task_queue_size" => {
+                    let expr: Expr = input.parse()?;
+                    args.safety_worker_task_queue_size = Some(expr);
                 }
                 "dedicated_workers" => {
                     let inner;
@@ -247,6 +253,7 @@ fn expr_to_usize(expr: &Expr) -> Result<usize> {
 ///         priority = 20,
 ///         scheduler_type = "RoundRobin"
 ///     },
+///     safety_worker_task_queue_size = 32,   // Optional, must be power of two, default: 64
 ///     dedicated_workers = [                 // Optional, list of dedicated workers
 ///         {
 ///             id = "dedicated1",            // Required, unique id
@@ -268,7 +275,7 @@ fn expr_to_usize(expr: &Expr) -> Result<usize> {
 ///
 /// ## Notes:
 /// - All parameters are optional unless otherwise noted.
-/// - `task_queue_size` must be a power of two.
+/// - `task_queue_size` and `safety_worker_task_queue_size` must be a power of two.
 /// - `worker_threads` must be between 1 and 128.
 /// - `priority` must be between 0 and 255.
 /// - `scheduler_type` must be one of "Fifo", "RoundRobin", "Other".
@@ -324,6 +331,18 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
     // safety worker token if enabled
     let sw_enabled = args.safety_worker.unwrap_or(false);
     let safety_worker_tokens = if sw_enabled {
+        let safety_worker_task_queue_size_ts = match args.safety_worker_task_queue_size {
+            Some(e) => {
+                let queue_size = expr_to_usize(&e).unwrap();
+                if !queue_size.is_power_of_two() {
+                    return syn::Error::new_spanned(e, "'safety_worker_task_queue_size' must be a power of two.")
+                        .to_compile_error()
+                        .into();
+                }
+                quote! { #e }
+            }
+            None => quote! { 64 }, // default
+        };
         match args.safety_worker_thread_parameters {
             Some(tp) => {
                 if tp.priority.is_none() ^ tp.scheduler_type.is_none() {
@@ -335,13 +354,23 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                         ThreadParameters::new()
                         #tp_tokens
                     )
+                    .safety_worker_task_queue_size(#safety_worker_task_queue_size_ts)
                 }
             }
             None => quote! {
                 .enable_safety_worker(ThreadParameters::default())
+                .safety_worker_task_queue_size(#safety_worker_task_queue_size_ts)
             },
         }
     } else {
+        if args.safety_worker_task_queue_size.is_some() {
+            return syn::Error::new_spanned(
+                args.safety_worker_task_queue_size.unwrap(),
+                "Safety worker is not enabled, but queue size is configured.",
+            )
+            .to_compile_error()
+            .into();
+        }
         quote! {/* safety worker not enabled */}
     };
 

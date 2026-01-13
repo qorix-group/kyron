@@ -69,7 +69,7 @@ impl TcpStream {
 
     /// Sets the value for the IP_TTL option on this socket.
     /// This value sets the time-to-live field that is used in every packet sent from this socket.
-    pub fn set_ttl(&self, ttl: u32) -> NetResult<()> {
+    pub fn set_ttl(&self, ttl: u8) -> NetResult<()> {
         self.stream.set_ttl(ttl)
     }
 

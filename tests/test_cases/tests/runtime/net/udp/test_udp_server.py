@@ -149,16 +149,7 @@ class TestSetInvalidTTL(TestDefaultTTL):
 
     @pytest.fixture(
         scope="class",
-        params=[
-            0,
-            256,
-            pytest.param(
-                2**32 - 1,
-                marks=pytest.mark.xfail(
-                    reason="Max u32 value sets TTL to default - https://github.com/qorix-group/inc_orchestrator_internal/issues/327",
-                ),
-            ),
-        ],
+        params=[0],
     )
     def ttl(self, request: pytest.FixtureRequest) -> int | None:
         return request.param

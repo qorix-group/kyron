@@ -193,8 +193,8 @@ where
             let mut instance = instance.borrow_mut();
 
             let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-            let task = Arc::new(AsyncTask::new(boxed, 0, runtime.sched.clone()));
+            let worker_id = create_mock_worker_id(0, 0);
+            let task = Arc::new(AsyncTask::new(boxed, &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
             runtime.tasks.push_back(task_ref.clone());
             JoinHandle::new(task_ref)
@@ -216,8 +216,8 @@ where
             let mut instance = instance.borrow_mut();
 
             let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-            let task = Arc::new(AsyncTask::new(reusable.into_pin(), 0, runtime.sched.clone()));
+            let worker_id = create_mock_worker_id(0, 0);
+            let task = Arc::new(AsyncTask::new(reusable.into_pin(), &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
             runtime.tasks.push_back(task_ref.clone());
             JoinHandle::new(task_ref)
@@ -252,8 +252,8 @@ where
             let mut instance = instance.borrow_mut();
 
             let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-            let task = Arc::new(AsyncTask::new(boxed, 0, runtime.sched.clone()));
+            let worker_id = create_mock_worker_id(0, 0);
+            let task = Arc::new(AsyncTask::new(boxed, &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
             runtime.tasks.push_back(task_ref.clone());
             JoinHandle::new(task_ref)
@@ -275,8 +275,8 @@ where
             let mut instance = instance.borrow_mut();
 
             let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-            let task = Arc::new(AsyncTask::new(reusable.into_pin(), 0, runtime.sched.clone()));
+            let worker_id = create_mock_worker_id(0, 0);
+            let task = Arc::new(AsyncTask::new(reusable.into_pin(), &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
             runtime.tasks.push_back(task_ref.clone());
             JoinHandle::new(task_ref)
@@ -322,8 +322,8 @@ pub mod safety {
                 let mut instance = instance.borrow_mut();
 
                 let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-                let task = Arc::new(AsyncTask::new_safety(true, boxed, 0, runtime.sched.clone()));
+                let worker_id = create_mock_worker_id(0, 0);
+                let task = Arc::new(AsyncTask::new_safety(true, boxed, &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)
@@ -343,8 +343,8 @@ pub mod safety {
                 let mut instance = instance.borrow_mut();
 
                 let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), 0, runtime.sched.clone()));
+                let worker_id = create_mock_worker_id(0, 0);
+                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)
@@ -375,8 +375,8 @@ pub mod safety {
                 let mut instance = instance.borrow_mut();
 
                 let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-                let task = Arc::new(AsyncTask::new_safety(true, boxed, 0, runtime.sched.clone()));
+                let worker_id = create_mock_worker_id(0, 0);
+                let task = Arc::new(AsyncTask::new_safety(true, boxed, &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)
@@ -399,8 +399,8 @@ pub mod safety {
                 let mut instance = instance.borrow_mut();
 
                 let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
-
-                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), 0, runtime.sched.clone()));
+                let worker_id = create_mock_worker_id(0, 0);
+                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)

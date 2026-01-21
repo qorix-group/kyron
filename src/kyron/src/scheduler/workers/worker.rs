@@ -24,13 +24,11 @@ use kyron_foundation::threading::thread_wait_barrier::ThreadReadyNotifier;
 use crate::scheduler::{
     context::{ctx_get_worker_id, ctx_initialize, ContextBuilder},
     scheduler_mt::AsyncScheduler,
-    task::async_task::*,
+    task::{async_task::*, task_context::TaskContextGuard},
     workers::{spawn_thread, ThreadParameters},
 };
 
 use super::worker_types::*;
-
-pub const FIRST_WORKER_ID: u8 = 0;
 
 // The facade to represent this in runtime
 pub(crate) struct Worker {
@@ -216,6 +214,7 @@ impl WorkerInner {
 
         let waker = create_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(task.clone());
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)
@@ -407,6 +406,7 @@ mod tests {
     #[cfg(not(miri))]
     fn test_worker_stop() {
         use crate::scheduler::driver::Drivers;
+        use crate::testing::create_mock_worker_id;
         use crate::{box_future, AsyncTask, FoundationAtomicBool, TaskRef};
         use core::sync::atomic;
         use core::time::Duration;
@@ -453,8 +453,12 @@ mod tests {
         // First, test that tasks are executed normally
         let first_task_executed = Arc::new(atomic::AtomicBool::new(false));
         let first_task_executed_clone = first_task_executed.clone();
-
-        let task = Arc::new(AsyncTask::new(box_future(test_fn(first_task_executed_clone)), 0, scheduler.clone()));
+        let worker_id = create_mock_worker_id(0, 0);
+        let task = Arc::new(AsyncTask::new(
+            box_future(test_fn(first_task_executed_clone)),
+            &worker_id,
+            scheduler.clone(),
+        ));
 
         scheduler.spawn_outside_runtime(TaskRef::new(task));
         std::thread::sleep(Duration::from_millis(100));
@@ -470,8 +474,12 @@ mod tests {
         // Try to execute a second task after stopping
         let second_task_executed = Arc::new(atomic::AtomicBool::new(false));
         let second_task_executed_clone = second_task_executed.clone();
-
-        let task = Arc::new(AsyncTask::new(box_future(test_fn(second_task_executed_clone)), 0, scheduler.clone()));
+        let worker_id = create_mock_worker_id(0, 0);
+        let task = Arc::new(AsyncTask::new(
+            box_future(test_fn(second_task_executed_clone)),
+            &worker_id,
+            scheduler.clone(),
+        ));
 
         scheduler.spawn_outside_runtime(TaskRef::new(task));
 

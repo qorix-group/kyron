@@ -36,7 +36,7 @@ pub(in super::super) const WORKER_STATE_EXECUTING: u8 = 0b00000011;
 pub(in super::super) const WORKER_STATE_SHUTTINGDOWN: u8 = 0b00000100;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub(crate) struct WorkerId {
+pub struct WorkerId {
     unique_id: UniqueWorkerId,
     engine_id: u8,   // in which engine worker is working
     worker_id: u8,   // whats the worker id in this engine
@@ -44,7 +44,7 @@ pub(crate) struct WorkerId {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub(crate) enum WorkerType {
+pub enum WorkerType {
     Async,
     Dedicated,
 }
@@ -60,21 +60,19 @@ impl WorkerId {
     }
 
     // Getters for all fields
-    pub(crate) fn unique_id(&self) -> UniqueWorkerId {
+    pub fn unique_id(&self) -> UniqueWorkerId {
         self.unique_id
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn engine_id(&self) -> u8 {
+    pub fn engine_id(&self) -> u8 {
         self.engine_id
     }
 
-    pub(crate) fn worker_id(&self) -> u8 {
+    pub fn worker_id(&self) -> u8 {
         self.worker_id
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn typ(&self) -> WorkerType {
+    pub fn typ(&self) -> WorkerType {
         self.typ
     }
 }

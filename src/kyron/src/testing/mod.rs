@@ -23,7 +23,11 @@ use kyron_testing::prelude::MockFn;
 
 use crate::{
     core::types::{box_future, ArcInternal},
-    scheduler::{scheduler_mt::SchedulerTrait, waker::create_waker},
+    scheduler::{
+        scheduler_mt::SchedulerTrait,
+        waker::create_waker,
+        workers::worker_types::{WorkerId, WorkerType},
+    },
     AsyncTask, TaskRef,
 };
 
@@ -101,6 +105,10 @@ pub fn create_mock_scheduler_sync() -> ArcInternal<SchedulerSyncMock> {
     ArcInternal::new(SchedulerSyncMock::default())
 }
 
+pub fn create_mock_worker_id(engine_id: u8, worker_id: u8) -> WorkerId {
+    WorkerId::new("MockWorker".into(), engine_id, worker_id, WorkerType::Async)
+}
+
 // Dummy stub functions
 pub async fn test_function<T: Default>() -> T {
     T::default()
@@ -113,7 +121,8 @@ pub async fn test_function_ret<T>(ret: T) -> T {
 pub(crate) type WakerTask = Arc<AsyncTask<(), Box<dyn Future<Output = ()> + Send + 'static>, Arc<SchedulerMock>>>;
 
 pub(crate) fn get_dummy_task_waker() -> (Waker, WakerTask) {
-    let task = Arc::new(AsyncTask::new(box_future(async {}), 0, create_mock_scheduler()));
+    let worker_id = create_mock_worker_id(0, 0);
+    let task = Arc::new(AsyncTask::new(box_future(async {}), &worker_id, create_mock_scheduler()));
 
     (create_waker(TaskRef::new(task.clone())), task)
 }
@@ -127,7 +136,8 @@ pub(crate) fn get_waker_from_task(task: &WakerTask) -> Waker {
 }
 
 pub fn get_dummy_sync_task_waker(sched: Arc<SchedulerSyncMock>) -> Waker {
-    let task = Arc::new(AsyncTask::new(box_future(async {}), 0, sched));
+    let worker_id = create_mock_worker_id(0, 0);
+    let task = Arc::new(AsyncTask::new(box_future(async {}), &worker_id, sched));
 
     create_waker(TaskRef::new(task.clone()))
 }

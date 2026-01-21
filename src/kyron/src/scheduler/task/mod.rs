@@ -12,4 +12,5 @@
 //
 
 pub mod async_task;
+pub mod task_context;
 pub mod task_state;

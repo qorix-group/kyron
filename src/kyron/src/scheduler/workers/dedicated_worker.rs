@@ -25,7 +25,7 @@ use crate::{
         context::{ctx_initialize, ContextBuilder},
         driver::Drivers,
         scheduler_mt::{AsyncScheduler, DedicatedScheduler},
-        task::async_task::TaskPollResult,
+        task::{async_task::TaskPollResult, task_context::TaskContextGuard},
         waker::create_waker,
         workers::{spawn_thread, Thread, ThreadParameters},
     },
@@ -181,6 +181,7 @@ impl WorkerInner {
     fn run_task(&mut self, task: TaskRef) {
         let waker = create_waker(task.clone());
         let mut ctx = Context::from_waker(&waker);
+        let _guard = TaskContextGuard::new(task.clone());
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)

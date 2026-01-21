@@ -15,6 +15,7 @@ use super::task_state::*;
 use crate::core::types::*;
 use crate::scheduler::safety_waker::create_safety_waker;
 use crate::scheduler::scheduler_mt::SchedulerTrait;
+use crate::scheduler::workers::worker_types::WorkerId;
 use ::core::future::Future;
 use ::core::mem;
 use ::core::ops::{Deref, DerefMut};
@@ -80,14 +81,13 @@ pub(crate) enum TaskStage<T, ResultType> {
 ///
 pub(crate) struct TaskHeader {
     pub(in crate::scheduler) state: TaskState,
-    #[allow(dead_code)]
     id: TaskId,
 
     vtable: &'static TaskVTable, // API entrypoint to typed task
 }
 
 impl TaskHeader {
-    pub(crate) fn new<T: 'static, AllocatedFuture, SchedulerType>(worker_id: u8) -> Self
+    pub(crate) fn new<T: 'static, AllocatedFuture, SchedulerType>(worker_id: &WorkerId) -> Self
     where
         AllocatedFuture: Deref + DerefMut,
         AllocatedFuture::Target: Future<Output = T> + Send + 'static,
@@ -101,7 +101,7 @@ impl TaskHeader {
         }
     }
 
-    pub(crate) fn new_safety<T: 'static, E: 'static, AllocatedFuture, SchedulerType>(worker_id: u8) -> Self
+    pub(crate) fn new_safety<T: 'static, E: 'static, AllocatedFuture, SchedulerType>(worker_id: &WorkerId) -> Self
     where
         AllocatedFuture: Deref + DerefMut,
         AllocatedFuture::Target: Future<Output = Result<T, E>> + Send + 'static,
@@ -174,7 +174,7 @@ where
         unsafe { (*instance).poll_safety(ctx) }
     }
 
-    pub(crate) fn new_safety(is_with_safety: bool, future: Pin<AllocatedFuture>, worker_id: u8, scheduler: SchedulerType) -> Self {
+    pub(crate) fn new_safety(is_with_safety: bool, future: Pin<AllocatedFuture>, worker_id: &WorkerId, scheduler: SchedulerType) -> Self {
         Self {
             header: TaskHeader::new_safety::<T, E, AllocatedFuture, SchedulerType>(worker_id),
             stage: UnsafeCell::new(TaskStage::InProgress(future)),
@@ -192,7 +192,7 @@ where
     SchedulerType: Deref,
     SchedulerType::Target: SchedulerTrait,
 {
-    pub(crate) fn new(future: Pin<AllocatedFuture>, worker_id: u8, scheduler: SchedulerType) -> Self {
+    pub(crate) fn new(future: Pin<AllocatedFuture>, worker_id: &WorkerId, scheduler: SchedulerType) -> Self {
         Self {
             header: TaskHeader::new::<T, AllocatedFuture, SchedulerType>(worker_id),
             stage: UnsafeCell::new(TaskStage::InProgress(future)),
@@ -613,6 +613,10 @@ impl TaskRef {
 
         snapshot.is_completed() || snapshot.is_canceled()
     }
+
+    pub(crate) fn id(&self) -> TaskId {
+        unsafe { self.header.as_ref().id }
+    }
 }
 
 impl Drop for TaskRef {
@@ -680,17 +684,21 @@ mod tests {
         {
             let boxed = box_future(dummy());
             let scheduler = create_mock_scheduler();
-            let task = ArcInternal::new(AsyncTask::new(boxed, 1, scheduler));
+            let worker_id = create_mock_worker_id(0, 1);
+            let task = ArcInternal::new(AsyncTask::new(boxed, &worker_id, scheduler));
             let id = task.id();
-            assert_eq!(id.0 & 0xFF, 1); // Test some internals
+            assert_eq!(id.worker(), 1); // Test some internals
+            assert_eq!(id.engine(), 0);
         }
 
         {
             let boxed = box_future(dummy_ret());
             let scheduler = create_mock_scheduler();
-            let task = AsyncTask::new(boxed, 2, scheduler);
+            let worker_id = create_mock_worker_id(1, 2);
+            let task = AsyncTask::new(boxed, &worker_id, scheduler);
             let id = task.id();
-            assert_eq!(id.0 & 0xFF, 2); // Test some internals
+            assert_eq!(id.worker(), 2); // Test some internals
+            assert_eq!(id.engine(), 1);
             drop(task);
         }
 
@@ -699,9 +707,11 @@ mod tests {
                 println!("some test");
             });
             let scheduler = create_mock_scheduler();
-            let task = AsyncTask::new(boxed, 2, scheduler);
+            let worker_id = create_mock_worker_id(0, 2);
+            let task = AsyncTask::new(boxed, &worker_id, scheduler);
             let id = task.id();
-            assert_eq!(id.0 & 0xFF, 2); // Test some internals
+            assert_eq!(id.worker(), 2); // Test some internals
+            assert_eq!(id.engine(), 0);
 
             drop(task);
         }
@@ -713,9 +723,11 @@ mod tests {
                 println!("some test 1 {:?}", v);
             });
             let scheduler = create_mock_scheduler();
-            let task = AsyncTask::new(boxed, 2, scheduler);
+            let worker_id = create_mock_worker_id(0, 2);
+            let task = AsyncTask::new(boxed, &worker_id, scheduler);
             let id = task.id();
-            assert_eq!(id.0 & 0xFF, 2); // Test some internals
+            assert_eq!(id.worker(), 2); // Test some internals
+            assert_eq!(id.engine(), 0);
 
             drop(task);
         }
@@ -725,10 +737,11 @@ mod tests {
     fn test_taskref_counting() {
         let boxed = box_future(dummy());
         let scheduler = create_mock_scheduler();
-
-        let task = ArcInternal::new(AsyncTask::new(boxed, 1, scheduler));
+        let worker_id = create_mock_worker_id(0, 1);
+        let task = ArcInternal::new(AsyncTask::new(boxed, &worker_id, scheduler));
         let id = task.id();
-        assert_eq!(id.0 & 0xFF, 1); // Test some internals
+        assert_eq!(id.worker(), 1); // Test some internals
+        assert_eq!(id.engine(), 0);
 
         let task_ref = TaskRef::new(task.clone());
 
@@ -751,9 +764,14 @@ mod tests {
     #[test]
     fn test_safety_task_error_does_not_respawn_safety_if_not_enabled() {
         let sched = create_mock_scheduler();
-
-        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
-        let safety_task = ArcInternal::new(AsyncTask::new_safety(false, box_future(dummy_safety_ret(true)), 1, sched.clone()));
+        let worker_id = create_mock_worker_id(0, 1);
+        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), &worker_id, sched.clone()));
+        let safety_task = ArcInternal::new(AsyncTask::new_safety(
+            false,
+            box_future(dummy_safety_ret(true)),
+            &worker_id,
+            sched.clone(),
+        ));
         let safety_task_ref = TaskRef::new(safety_task.clone());
 
         let waker = get_waker_from_task(&safety_task_parent);
@@ -774,9 +792,9 @@ mod tests {
     #[test]
     fn test_safety_task_error_does_respawn_safety_if_enabled() {
         let sched = create_mock_scheduler();
-
-        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
-        let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(true)), 1, sched.clone()));
+        let worker_id = create_mock_worker_id(0, 1);
+        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), &worker_id, sched.clone()));
+        let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(true)), &worker_id, sched.clone()));
         let safety_task_ref = TaskRef::new(safety_task.clone());
 
         let waker = get_waker_from_task(&safety_task_parent);
@@ -797,9 +815,14 @@ mod tests {
     #[test]
     fn test_safety_task_ok_does_not_respawn_safety_if_enabled() {
         let sched = create_mock_scheduler();
-
-        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
-        let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(false)), 1, sched.clone()));
+        let worker_id = create_mock_worker_id(0, 1);
+        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), &worker_id, sched.clone()));
+        let safety_task = ArcInternal::new(AsyncTask::new_safety(
+            true,
+            box_future(dummy_safety_ret(false)),
+            &worker_id,
+            sched.clone(),
+        ));
         let safety_task_ref = TaskRef::new(safety_task.clone());
 
         let waker = get_waker_from_task(&safety_task_parent);
@@ -820,9 +843,14 @@ mod tests {
     #[test]
     fn test_safety_task_ok_does_not_respawn_safety_if_not_enabled() {
         let sched = create_mock_scheduler();
-
-        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), 1, sched.clone()));
-        let safety_task = ArcInternal::new(AsyncTask::new_safety(false, box_future(dummy_safety_ret(false)), 1, sched.clone()));
+        let worker_id = create_mock_worker_id(0, 1);
+        let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), &worker_id, sched.clone()));
+        let safety_task = ArcInternal::new(AsyncTask::new_safety(
+            false,
+            box_future(dummy_safety_ret(false)),
+            &worker_id,
+            sched.clone(),
+        ));
         let safety_task_ref = TaskRef::new(safety_task.clone());
 
         let waker = get_waker_from_task(&safety_task_parent);
@@ -844,9 +872,11 @@ mod tests {
     fn task_taskref_can_be_send_to_another_thread() {
         let boxed = box_future(dummy());
         let scheduler = create_mock_scheduler();
-        let task = ArcInternal::new(AsyncTask::new(boxed, 1, scheduler));
+        let worker_id = create_mock_worker_id(0, 1);
+        let task = ArcInternal::new(AsyncTask::new(boxed, &worker_id, scheduler));
         let id = task.id();
-        assert_eq!(id.0 & 0xFF, 1); // Test some internals
+        assert_eq!(id.worker(), 1); // Test some internals
+        assert_eq!(id.engine(), 0);
 
         let task_ref = TaskRef::new(task.clone());
 
@@ -868,9 +898,9 @@ mod tests {
 mod tests {
 
     use super::*;
+    use crate::scheduler::workers::worker_types::WorkerType;
     use crate::testing::*;
     use kyron_testing::prelude::*;
-
     use loom::model::Builder;
 
     use crate::core::types::{box_future, ArcInternal};
@@ -898,8 +928,8 @@ mod tests {
         loom::model(|| {
             let boxed = box_future(dummy());
             let scheduler = create_mock_scheduler();
-
-            let task = ArcInternal::new(AsyncTask::new(boxed, 1, scheduler.clone()));
+            let worker_id = create_mock_worker_id(0, 1);
+            let task = ArcInternal::new(AsyncTask::new(boxed, &worker_id, scheduler.clone()));
             let handle1;
             {
                 let task_ref = TaskRef::new(task.clone());
@@ -942,7 +972,8 @@ mod tests {
         builder.check(|| {
             let boxed = box_future(dummy_pending());
             let scheduler = create_mock_scheduler();
-            let task = ArcInternal::new(AsyncTask::new(boxed, 1, scheduler.clone()));
+            let worker_id = create_mock_worker_id(0, 1);
+            let task = ArcInternal::new(AsyncTask::new(boxed, &worker_id, scheduler.clone()));
 
             let handle1;
             {

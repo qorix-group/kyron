@@ -165,7 +165,7 @@ impl Handler {
     fn internal<T>(
         &self,
         boxed: FutureBox<T>,
-        c: impl Fn(FutureBox<T>, u8, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, Arc<AsyncScheduler>>>,
+        c: impl Fn(FutureBox<T>, &WorkerId, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, Arc<AsyncScheduler>>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -173,18 +173,18 @@ impl Handler {
         let task_ref;
         let handle;
 
-        let worker_id = ctx_get_worker_id().worker_id();
+        let worker_id = ctx_get_worker_id();
 
         match self.inner {
             HandlerImpl::Async(ref async_inner) => {
-                let task = c(boxed, worker_id, async_inner.scheduler.clone());
+                let task = c(boxed, &worker_id, async_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
                 async_inner.scheduler.spawn_from_runtime(task_ref, &async_inner.prod_con);
             }
             HandlerImpl::Dedicated(ref dedicated_inner) => {
-                let task = c(boxed, worker_id, dedicated_inner.scheduler.clone());
+                let task = c(boxed, &worker_id, dedicated_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
@@ -198,7 +198,7 @@ impl Handler {
     fn reusable_safety_internal<T>(
         &self,
         reusable: ReusableBoxFuture<T>,
-        c: impl Fn(Pin<ReusableBoxFuture<T>>, u8, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, Arc<AsyncScheduler>>>,
+        c: impl Fn(Pin<ReusableBoxFuture<T>>, &WorkerId, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, Arc<AsyncScheduler>>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -206,18 +206,18 @@ impl Handler {
         let task_ref;
         let handle;
 
-        let worker_id = ctx_get_worker_id().worker_id();
+        let worker_id = ctx_get_worker_id();
 
         match self.inner {
             HandlerImpl::Async(ref async_inner) => {
-                let task = c(reusable.into_pin(), worker_id, async_inner.scheduler.clone());
+                let task = c(reusable.into_pin(), &worker_id, async_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
                 async_inner.scheduler.spawn_from_runtime(task_ref, &async_inner.prod_con);
             }
             HandlerImpl::Dedicated(ref dedicated_inner) => {
-                let task = c(reusable.into_pin(), worker_id, dedicated_inner.scheduler.clone());
+                let task = c(reusable.into_pin(), &worker_id, dedicated_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
@@ -232,7 +232,11 @@ impl Handler {
         &self,
         boxed: FutureBox<T>,
         worker_id: UniqueWorkerId,
-        c: impl Fn(FutureBox<T>, u8, DedicatedSchedulerLocal) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, DedicatedSchedulerLocal>>,
+        c: impl Fn(
+            FutureBox<T>,
+            &WorkerId,
+            DedicatedSchedulerLocal,
+        ) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, DedicatedSchedulerLocal>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -242,11 +246,7 @@ impl Handler {
             HandlerImpl::Dedicated(ref dedicated_inner) => &dedicated_inner.dedicated_scheduler,
         };
 
-        let task = c(
-            boxed,
-            ctx_get_worker_id().worker_id(),
-            DedicatedSchedulerLocal::new(worker_id, scheduler.clone()),
-        );
+        let task = c(boxed, &ctx_get_worker_id(), DedicatedSchedulerLocal::new(worker_id, scheduler.clone()));
 
         let task_ref = TaskRef::new(task.clone());
         let handle = JoinHandle::new(task_ref.clone());
@@ -261,7 +261,7 @@ impl Handler {
         &self,
         reusable: ReusableBoxFuture<T>,
         worker_id: UniqueWorkerId,
-        c: impl Fn(Pin<ReusableBoxFuture<T>>, u8, DedicatedSchedulerLocal) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, DedicatedSchedulerLocal>>,
+        c: impl Fn(Pin<ReusableBoxFuture<T>>, &WorkerId, DedicatedSchedulerLocal) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, DedicatedSchedulerLocal>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -273,7 +273,7 @@ impl Handler {
 
         let task = c(
             reusable.into_pin(),
-            ctx_get_worker_id().worker_id(),
+            &ctx_get_worker_id(),
             DedicatedSchedulerLocal::new(worker_id, scheduler.clone()),
         );
 
@@ -303,9 +303,8 @@ impl Handler {
 /// This is an entry point for public API that is filled by each worker once it's created
 ///
 pub(crate) struct WorkerContext {
-    #[allow(dead_code)] // used in the tests
-    /// The ID of task that is currently run by worker
-    running_task_id: Cell<Option<TaskId>>,
+    /// Task that is currently run by worker
+    running_task: RefCell<Option<TaskRef>>,
 
     /// WorkerID and EngineID
     worker_id: Cell<WorkerId>,
@@ -395,7 +394,7 @@ impl ContextBuilder {
 
     pub(crate) fn build(self) -> WorkerContext {
         WorkerContext {
-            running_task_id: Cell::new(None),
+            running_task: RefCell::new(None),
             worker_id: Cell::new(self.worker_id.expect("Worker type must be set in context builder!")),
             handler: RefCell::new(Some(Rc::new(self.handle.expect("Handler type must be set in context builder!")))),
             is_safety_enabled: self.is_with_safety,
@@ -482,43 +481,51 @@ pub(crate) fn ctx_get_drivers() -> Drivers {
         .unwrap()
 }
 
+///
+/// Sets currently running `task`
+///
+pub(super) fn ctx_set_running_task(task: TaskRef) {
+    let _ = CTX
+        .try_with(|ctx| {
+            ctx.borrow().as_ref().expect("Called before CTX init?").running_task.replace(Some(task));
+        })
+        .map_err(|e| {
+            panic!("Something is really bad here, error {}!", e);
+        });
+}
+
+///
+/// Clears currently running `task`
+///
+pub(super) fn ctx_unset_running_task() {
+    let _ = CTX
+        .try_with(|ctx| {
+            ctx.borrow().as_ref().expect("Called before CTX init?").running_task.replace(None);
+        })
+        .map_err(|_| {});
+}
+
+///
+/// Gets currently running `task id`
+///
+pub(crate) fn ctx_get_running_task_id() -> Option<TaskId> {
+    CTX.try_with(|ctx| {
+        ctx.borrow()
+            .as_ref()
+            .expect("Called before CTX init?")
+            .running_task
+            .borrow()
+            .as_ref()
+            .map(|task| task.id())
+    })
+    .unwrap_or_else(|e| {
+        panic!("Something is really bad here, error {}!", e);
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    ///
-    /// Sets currently running `task id`
-    ///
-    pub(crate) fn ctx_set_running_task_id(id: TaskId) {
-        let _ = CTX
-            .try_with(|ctx| {
-                ctx.borrow().as_ref().expect("Called before CTX init?").running_task_id.replace(Some(id));
-            })
-            .map_err(|e| {
-                panic!("Something is really bad here, error {}!", e);
-            });
-    }
-
-    ///
-    /// Clears currently running `task id`
-    ///
-    pub(crate) fn ctx_unset_running_task_id() {
-        let _ = CTX
-            .try_with(|ctx| {
-                ctx.borrow().as_ref().expect("Called before CTX init?").running_task_id.replace(None);
-            })
-            .map_err(|_| {});
-    }
-
-    ///
-    /// Gets currently running `task id`
-    ///
-    pub(crate) fn ctx_get_running_task_id() -> Option<TaskId> {
-        CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").running_task_id.get())
-            .unwrap_or_else(|e| {
-                panic!("Something is really bad here, error {}!", e);
-            })
-    }
 
     #[test]
     fn test_context_no_init_panic_handler() {
@@ -540,12 +547,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_context_no_init_panic_set_task_id() {
-        ctx_set_running_task_id(TaskId::new(1));
+        let (_, task) = crate::testing::get_dummy_task_waker();
+        ctx_set_running_task(TaskRef::new(task));
     }
 
     #[test]
     #[should_panic]
     fn test_context_no_init_panic_unset_task_id() {
-        ctx_unset_running_task_id();
+        ctx_unset_running_task();
     }
 }

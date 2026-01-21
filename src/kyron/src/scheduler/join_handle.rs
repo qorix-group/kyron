@@ -127,6 +127,7 @@ mod tests {
     use super::*;
     use crate::testing::*;
 
+    use crate::scheduler::workers::worker_types::{WorkerId, WorkerType};
     use kyron_testing::prelude::*;
 
     #[test]
@@ -135,7 +136,8 @@ mod tests {
 
         {
             // Data is present after first poll of join handle
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -157,7 +159,8 @@ mod tests {
 
         {
             // Data is present before first poll of join handle
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -179,7 +182,8 @@ mod tests {
         let scheduler = create_mock_scheduler();
 
         {
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -195,7 +199,8 @@ mod tests {
         }
 
         {
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
             let mut poller = TestingFuturePoller::new(handle);
 
@@ -211,7 +216,8 @@ mod tests {
 
         {
             // Data is present before first poll of join handle
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -236,7 +242,8 @@ mod tests {
 
         {
             // Data is present before first poll of join handle
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), 1, scheduler.clone()));
+            let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -265,6 +272,7 @@ mod tests {
 
     use crate::{
         core::types::{box_future, ArcInternal},
+        scheduler::workers::worker_types::{WorkerId, WorkerType},
         AsyncTask,
     };
 
@@ -284,7 +292,8 @@ mod tests {
 
             {
                 // Data is present after first poll of join handle
-                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), 1, scheduler.clone()));
+                let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
 
                 let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -333,7 +342,8 @@ mod tests {
 
             {
                 // Data is present after first poll of join handle
-                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), 1, scheduler.clone()));
+                let worker_id = WorkerId::new("TestWorker".into(), 0, 1, WorkerType::Async);
+                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
 
                 let join_handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 

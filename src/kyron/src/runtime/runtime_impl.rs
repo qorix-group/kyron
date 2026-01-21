@@ -49,6 +49,7 @@ impl RuntimeBuilder {
     ///
     pub fn with_engine(mut self, builder: ExecutionEngineBuilder) -> (Self, usize) {
         let id = self.next_id;
+        let builder = builder.set_engine_id(id as u8);
         self.engine_builders.push(builder);
         self.next_id += 1;
         (self, id)

@@ -11,10 +11,12 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-use ::core::cell::Cell;
 use ::core::future::Future;
 use ::core::pin::Pin;
+use ::core::sync::atomic::AtomicU64;
 use std::sync::Arc;
+
+use crate::scheduler::workers::worker_types::WorkerId;
 
 // Used to Box Futures
 pub(crate) type BoxCustom<T> = Box<T>; // TODO: We shall replace Global allocator with our own. Since Allocator API is not stable, we shall provide own Box impl (only for internal purpose handling)
@@ -30,27 +32,30 @@ pub(crate) type BoxInternal<T> = Box<T>; // TODO: Use mempool allocator, for now
 pub(crate) type ArcInternal<T> = Arc<T>; // TODO: Use mempool allocator, for now we keep default impl
 
 ///
-/// TaskId encodes the worker on which it was created and it's number local to the worker.
+/// TaskId encodes the worker on which it was created and it is global to the process.
 /// This id cannot be used to infer task order creation or anything like that, it's only for identification purpose.
 ///
 #[derive(Copy, Clone, Debug)]
-pub(crate) struct TaskId(pub(crate) u32);
+pub struct TaskId(pub(crate) u64);
 
-thread_local! {
-    static TASK_COUNTER: Cell<u32> = const {Cell::new(0)};
-}
-
-#[allow(dead_code)]
 impl TaskId {
-    pub(crate) fn new(worker_id: u8) -> Self {
-        let val = (TASK_COUNTER.get()) % 0x00FFFFFF; //TODO: Fix it later or change algo
-        TASK_COUNTER.set(val + 1);
-
-        Self((val << 8) | worker_id as u32)
+    pub(crate) fn new(worker_id: &WorkerId) -> Self {
+        let engine_id = worker_id.engine_id();
+        let worker_id = worker_id.worker_id();
+        static TASK_COUNTER: AtomicU64 = const { AtomicU64::new(0) };
+        // Just increment the global counter, it wraps around on overflow. Only lower 48 bits are used for the TaskId.
+        let val = TASK_COUNTER.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed);
+        Self((val << 16) | ((engine_id as u64) << 8) | worker_id as u64)
     }
 
-    pub(crate) fn worker(&self) -> u8 {
-        (self.0 & 0xFF_u32) as u8
+    /// Get the worker id that created this task
+    pub fn worker(&self) -> u8 {
+        (self.0 & 0xFF_u64) as u8
+    }
+
+    /// Get the engine id that created this task
+    pub fn engine(&self) -> u8 {
+        ((self.0 >> 8) & 0xFF_u64) as u8
     }
 }
 

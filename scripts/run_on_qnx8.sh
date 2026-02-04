@@ -28,4 +28,4 @@ fi
 
 echo "Note: If it fails with 'Error downloading [https://www.qnx.com/download/download/79858/installation.tgz' access this link from webbrowser and accept the license agreement."
 
-bazel run  --config=build_qnx8 --credential_helper=*.qnx.com=%workspace%/scripts/internal/qnx_creds.py //virtualization:virtualization_run_qemu
+bazel run  --config=arm64-qnx --credential_helper=*.qnx.com=%workspace%/scripts/internal/qnx_creds.py //virtualization:virtualization_run_qemu

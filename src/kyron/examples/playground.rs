@@ -104,5 +104,4 @@ fn main() {
         0
     });
 
-    println!("sdfdsf");
 }

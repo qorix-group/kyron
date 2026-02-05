@@ -50,7 +50,7 @@ build:x86_64-qnx --extra_toolchains=@score_toolchains_rust//toolchains/ferrocene
 # -------------------------------------------------------------------------------
 # Config dedicated to target platform CPU:arm64 and OS:QNX
 # -------------------------------------------------------------------------------
-build:arm64-qnx --host_platform=@score_bazel_platforms//:x86_64-linux
-build:arm64-qnx --platforms=@score_bazel_platforms//:aarch64-qnx-sdp_8.0.0-posix
-build:arm64-qnx --extra_toolchains=@score_qcc_aarch64_toolchain//:aarch64-qnx-sdp_8.0.0-posix
-build:arm64-qnx --extra_toolchains=@score_toolchains_rust//toolchains/ferrocene:ferrocene_aarch64_unknown_nto_qnx800
+build:build_qnx8 --host_platform=@score_bazel_platforms//:x86_64-linux
+build:build_qnx8 --platforms=@score_bazel_platforms//:aarch64-qnx-sdp_8.0.0-posix
+build:build_qnx8 --extra_toolchains=@score_qcc_aarch64_toolchain//:aarch64-qnx-sdp_8.0.0-posix
+build:build_qnx8 --extra_toolchains=@score_toolchains_rust//toolchains/ferrocene:ferrocene_aarch64_unknown_nto_qnx800

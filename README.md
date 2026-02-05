@@ -6,8 +6,6 @@ Repository for **safe async runtime** called **kyron** for Rust
 [![Nightly CIT (Bazel)](../../actions/workflows/component_integration_tests_bazel.yml/badge.svg)](../../actions/workflows/component_integration_tests_bazel.yml)
 [![Kyron Examples](https://img.shields.io/badge/Kyron-examples-red?style=flat&link=https%3A%2F%2Fgithub.com%2Feclipse-score%kyron%2Ftree%2Fmain%2Fsrc%2Fkyron)](src/kyron/README.md)
 
-
-
 ## Feature status and roadmap
 
 * [Async Runtime](src/kyron/doc/features.md)
@@ -17,19 +15,21 @@ Repository for **safe async runtime** called **kyron** for Rust
 This repository includes two GitHub Actions workflows for component integration testing:
 
 ### Component Integration Tests (Cargo-based)
-- **Schedule**: Runs nightly at 1:45 UTC
-- **Build System**: Uses Cargo for Rust components
-- **Testing**: Executes Python test suite with pytest
-- **Nightly Mode**: Runs tests 20 times with `--count 20 --repeat-scope session` for enhanced
+
+* **Schedule**: Runs nightly at 1:45 UTC
+* **Build System**: Uses Cargo for Rust components
+* **Testing**: Executes Python test suite with pytest
+* **Nightly Mode**: Runs tests 20 times with `--count 20 --repeat-scope session` for enhanced
   reliability testing
-- **Triggers**: Push/PR to main/development branches, and scheduled nightly runs
+* **Triggers**: Push/PR to main/development branches, and scheduled nightly runs
 
 ### Component Integration Tests (Bazel-based)
-- **Schedule**: Runs nightly at 1:15 UTC
-- **Build System**: Uses Bazel for all components
-- **Testing**: Builds Rust test scenarios and runs Python component integration tests
-- **Nightly Mode**: Uses `cit_repeat` target for flake detection
-- **Triggers**: Push/PR to main/development branches, and scheduled nightly runs
+
+* **Schedule**: Runs nightly at 1:15 UTC
+* **Build System**: Uses Bazel for all components
+* **Testing**: Builds Rust test scenarios and runs Python component integration tests
+* **Nightly Mode**: Uses `cit_repeat` target for flake detection
+* **Triggers**: Push/PR to main/development branches, and scheduled nightly runs
 
 Monitor via the status badges above and the Actions tab
 
@@ -40,6 +40,7 @@ Monitor via the status badges above and the Actions tab
 ```bash
 sudo apt-get update
 sudo apt-get install -y curl build-essential protobuf-compiler libclang-dev git python3-dev python-is-python3 python3-venv
+sudo apt install libc++-dev libc++abi-dev libstdc++-dev g++
 ```
 
 ### Rust installation
@@ -91,8 +92,8 @@ Please follow
 to get access to QNX8 and how to setup QNX8 for `S-CORE`. In above link You will also find an
 instructions how to replace SDP in case You need to use other one (ie HW specific).
 
-
 ### Building
+
 ```bash
 ./scripts/build_qnx8.sh BAZEL_TARGET (default is //src/...)
 ```

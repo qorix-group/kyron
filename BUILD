@@ -28,7 +28,6 @@ copyright_checker(
         "scripts",
         "src",
         "tests",
-        "virtualization",
         "//:BUILD",
         "//:MODULE.bazel",
         "//:project_config.bzl",

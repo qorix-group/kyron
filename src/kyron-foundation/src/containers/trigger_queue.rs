@@ -73,7 +73,9 @@ impl<T> TriggerQueueConsumer<T> {
 
 impl<T> Drop for TriggerQueueConsumer<T> {
     fn drop(&mut self) {
-        self.queue.has_consumer.store(false, ::core::sync::atomic::Ordering::SeqCst);
+        self.queue
+            .has_consumer
+            .store(false, ::core::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -347,7 +349,7 @@ mod tests {
                     Ok(val) => {
                         sum += val;
                         received += 1;
-                    }
+                    },
                     Err(CommonErrors::Timeout) => continue,
                     Err(_) => panic!("Unexpected error"),
                 }

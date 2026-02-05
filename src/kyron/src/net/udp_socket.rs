@@ -87,7 +87,9 @@ impl UdpSocket {
         let sock_addr = resolve_as_single_address(addr).await?;
 
         self.socket
-            .async_call(crate::mio::types::IoEventInterest::WRITABLE, |socket| socket.send_to(buf, sock_addr))
+            .async_call(crate::mio::types::IoEventInterest::WRITABLE, |socket| {
+                socket.send_to(buf, sock_addr)
+            })
             .await
     }
 
@@ -108,7 +110,9 @@ impl UdpSocket {
     /// The function must be called with valid byte array buf of sufficient size to hold the message bytes. If a message is too long to fit in the supplied buffer, excess bytes may be discarded.
     pub async fn recv_from(&self, buf: &mut [u8]) -> NetResult<(usize, SocketAddr)> {
         self.socket
-            .async_call(crate::mio::types::IoEventInterest::READABLE, |socket| socket.recv_from(buf))
+            .async_call(crate::mio::types::IoEventInterest::READABLE, |socket| {
+                socket.recv_from(buf)
+            })
             .await
     }
 

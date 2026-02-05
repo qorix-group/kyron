@@ -331,21 +331,27 @@ impl TaskState {
     ///
     /// Apply value from action and returns value from action
     ///
-    fn fetch_update_with_return<T: FnMut(TaskStateSnapshot) -> (Option<TaskStateSnapshot>, U), U>(&self, mut f: T) -> U {
+    fn fetch_update_with_return<T: FnMut(TaskStateSnapshot) -> (Option<TaskStateSnapshot>, U), U>(
+        &self,
+        mut f: T,
+    ) -> U {
         let mut val = self.s.load(::core::sync::atomic::Ordering::Acquire);
         loop {
             let (state, ret) = f(TaskStateSnapshot(val));
             match state {
                 Some(s) => {
-                    let res = self
-                        .s
-                        .compare_exchange(val, s.0, ::core::sync::atomic::Ordering::AcqRel, ::core::sync::atomic::Ordering::Acquire);
+                    let res = self.s.compare_exchange(
+                        val,
+                        s.0,
+                        ::core::sync::atomic::Ordering::AcqRel,
+                        ::core::sync::atomic::Ordering::Acquire,
+                    );
 
                     match res {
                         Ok(_) => break ret,
                         Err(actual) => val = actual,
                     }
-                }
+                },
                 None => break ret,
             }
         }

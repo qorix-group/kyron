@@ -45,7 +45,7 @@ async fn send_task<const SIZE: usize>(sender: spsc::Sender<u64, SIZE>, data_to_s
         match result {
             Err(e) => {
                 info!(id = "send_task", error = format!("{e:?}"));
-            }
+            },
             Ok(_) => info!(id = "send_task", data = data),
         }
     }
@@ -57,10 +57,10 @@ async fn receive_task<const SIZE: usize>(mut receiver: spsc::Receiver<u64, SIZE>
         match result {
             Some(val) => {
                 info!(id = "receive_task", data = val);
-            }
+            },
             None => {
                 info!(id = "receive_task", error = "Provider dropped");
-            }
+            },
         }
     }
 }
@@ -110,7 +110,9 @@ impl Scenario for SPSCSendOnly {
         let (sender, _receiver) = spsc::create_channel::<u64, QUEUE_SIZE>();
 
         rt.block_on(async move {
-            spawn(send_task(sender, logic.data_to_send.clone())).await.expect("Failed to spawn task");
+            spawn(send_task(sender, logic.data_to_send.clone()))
+                .await
+                .expect("Failed to spawn task");
         });
 
         Ok(())
@@ -135,7 +137,9 @@ impl Scenario for SPSCDropReceiver {
         drop(receiver);
 
         rt.block_on(async move {
-            spawn(send_task(sender, logic.data_to_send.clone())).await.expect("Failed to spawn task");
+            spawn(send_task(sender, logic.data_to_send.clone()))
+                .await
+                .expect("Failed to spawn task");
         });
 
         Ok(())
@@ -200,7 +204,10 @@ impl Scenario for SPSCDropSenderInTheMiddle {
         let mut joiner = RuntimeJoiner::new();
         rt.block_on(async move {
             joiner.add_handle(spawn(send_task(sender, logic.data_to_send.clone())));
-            joiner.add_handle(spawn(receive_task(receiver, logic.data_to_send.len() + logic.overread_count)));
+            joiner.add_handle(spawn(receive_task(
+                receiver,
+                logic.data_to_send.len() + logic.overread_count,
+            )));
             joiner.wait_for_all().await;
         });
 
@@ -229,7 +236,7 @@ impl SPSCDropReceiverInTheMiddle {
         match result {
             Err(e) => {
                 info!(id = "send_task", error = format!("{e:?}"));
-            }
+            },
             Ok(_) => info!(id = "send_task", data = data),
         }
     }
@@ -316,7 +323,7 @@ impl SPSCHeavyLoad {
                     } else {
                         panic!("Unexpected error: {e:?}");
                     }
-                }
+                },
                 Ok(_) => break,
             }
         }
@@ -328,7 +335,10 @@ impl SPSCHeavyLoad {
         }
     }
 
-    pub async fn heavy_receive_task<const SIZE: usize>(mut receiver: spsc::Receiver<u64, SIZE>, expected_data_count: u64) {
+    pub async fn heavy_receive_task<const SIZE: usize>(
+        mut receiver: spsc::Receiver<u64, SIZE>,
+        expected_data_count: u64,
+    ) {
         for expected_val in 1..=expected_data_count {
             let result = receiver.recv().await;
             match result {
@@ -340,10 +350,10 @@ impl SPSCHeavyLoad {
                             error = format!("Expected {expected_val}, got {val}")
                         );
                     }
-                }
+                },
                 None => {
                     info!(id = "receive_task", iter = expected_val, error = "Provider dropped");
-                }
+                },
             }
         }
     }

@@ -17,7 +17,10 @@ use kyron_foundation::prelude::{vector_extension::VectorExtension, *};
 // A simple example for main macro usage with all default engine parameters
 #[kyron::main]
 async fn main() {
-    tracing_subscriber::fmt().with_target(false).with_max_level(Level::INFO).init();
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_max_level(Level::INFO)
+        .init();
 
     let mut handles = Vec::new_in_global(10);
 

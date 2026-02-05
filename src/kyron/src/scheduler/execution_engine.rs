@@ -120,7 +120,12 @@ impl ExecutionEngine {
         });
 
         let scheduler = self.get_async_scheduler();
-        let worker_id = WorkerId::new("MainThread".into(), MAIN_THREAD_ID, MAIN_THREAD_ID, WorkerType::Dedicated);
+        let worker_id = WorkerId::new(
+            "MainThread".into(),
+            MAIN_THREAD_ID,
+            MAIN_THREAD_ID,
+            WorkerType::Dedicated,
+        );
         let task = Arc::new(AsyncTask::new(boxed, &worker_id, scheduler));
         let entry_task = TaskRef::new(task.clone());
 
@@ -205,10 +210,10 @@ impl ExecutionEngine {
         match res {
             Ok(_) => {
                 debug!("Workers ready, continue...");
-            }
+            },
             Err(_) => {
                 panic!("Timeout on starting engine, not all workers reported ready, stopping...");
-            }
+            },
         }
     }
 }
@@ -276,7 +281,11 @@ impl ExecutionEngineBuilder {
     /// >ATTENTION: `size` has to be power of two
     ///
     pub fn task_queue_size(mut self, size: u32) -> Self {
-        assert!(size.is_power_of_two(), "Task queue size ({}) must be power of two", size);
+        assert!(
+            size.is_power_of_two(),
+            "Task queue size ({}) must be power of two",
+            size
+        );
         self.queue_size = size;
         self
     }
@@ -326,8 +335,15 @@ impl ExecutionEngineBuilder {
     /// >ATTENTION: `size` has to be power of two and safety worker shall be enabled prior to queue size configuration.
     ///
     pub fn safety_worker_task_queue_size(mut self, size: u32) -> Self {
-        assert!(size.is_power_of_two(), "Safety worker task queue size ({}) must be power of two", size);
-        assert!(self.with_safe_worker.0, "Enable safety worker prior to configuring its queue size.");
+        assert!(
+            size.is_power_of_two(),
+            "Safety worker task queue size ({}) must be power of two",
+            size
+        );
+        assert!(
+            self.with_safe_worker.0,
+            "Enable safety worker prior to configuring its queue size."
+        );
         self.safety_worker_queue_size = size;
         self
     }
@@ -370,7 +386,12 @@ impl ExecutionEngineBuilder {
                 // so lets assign safety worker id after all the workers
                 let safety_worker_id = self.async_workers_cnt + self.dedicated_workers_ids.len();
                 let w = SafetyWorker::new(
-                    WorkerId::new("SafetyWorker".into(), self.id, safety_worker_id as u8, WorkerType::Dedicated),
+                    WorkerId::new(
+                        "SafetyWorker".into(),
+                        self.id,
+                        safety_worker_id as u8,
+                        WorkerType::Dedicated,
+                    ),
                     self.with_safe_worker.1,
                     self.safety_worker_queue_size,
                 );
@@ -393,7 +414,12 @@ impl ExecutionEngineBuilder {
                 .push(create_steal_queue(self.queue_size))
                 .expect("Failed to add new steal queue for async worker");
 
-            let id = WorkerId::new(format!("arunner{}", i).as_str().into(), self.id, i as u8, WorkerType::Async);
+            let id = WorkerId::new(
+                format!("arunner{}", i).as_str().into(),
+                self.id,
+                i as u8,
+                WorkerType::Async,
+            );
 
             worker_interactors[i].write(WorkerInteractor::new(async_queues[i].clone(), id));
 
@@ -414,11 +440,17 @@ impl ExecutionEngineBuilder {
 
         // Create dedicated workers part
         let mut dedicated_workers = Vec::new_in_global(core::cmp::max(self.dedicated_workers_ids.len(), 1));
-        let mut dedicated_queues = Box::<[(WorkerId, Arc<TriggerQueue<TaskRef>>)]>::new_uninit_slice(self.dedicated_workers_ids.len());
+        let mut dedicated_queues =
+            Box::<[(WorkerId, Arc<TriggerQueue<TaskRef>>)]>::new_uninit_slice(self.dedicated_workers_ids.len());
         let dedicated_worker_id_start = self.async_workers_cnt;
         for i in 0..self.dedicated_workers_ids.len() {
             let id = self.dedicated_workers_ids[i].0;
-            let real_id = WorkerId::new(id, self.id, (dedicated_worker_id_start + i) as u8, WorkerType::Dedicated);
+            let real_id = WorkerId::new(
+                id,
+                self.id,
+                (dedicated_worker_id_start + i) as u8,
+                WorkerType::Dedicated,
+            );
             let thread_params = self.dedicated_workers_ids[i].1.clone();
             dedicated_workers
                 .push(DedicatedWorker::new(real_id, self.with_safe_worker.0, thread_params))
@@ -473,7 +505,10 @@ mod tests {
 
     #[allow(dead_code)]
     fn create_engine(workers: usize) -> ExecutionEngine {
-        ExecutionEngineBuilder::new().workers(workers).task_queue_size(8).build()
+        ExecutionEngineBuilder::new()
+            .workers(workers)
+            .task_queue_size(8)
+            .build()
     }
 
     #[test]
@@ -507,7 +542,11 @@ mod tests {
     #[cfg(not(miri))] // Provenance issues
     fn create_engine_with_worker_and_verify_ids() {
         use crate::scheduler::context::{ctx_get_running_task_id, ctx_get_worker_id};
-        let mut engine = ExecutionEngineBuilder::new().workers(1).task_queue_size(16).set_engine_id(1).build();
+        let mut engine = ExecutionEngineBuilder::new()
+            .workers(1)
+            .task_queue_size(16)
+            .set_engine_id(1)
+            .build();
         let result: Result<bool, ()> = engine
             .run_in_engine(async move {
                 let engine_id = ctx_get_worker_id().engine_id();
@@ -515,7 +554,10 @@ mod tests {
                 let task_id = ctx_get_running_task_id().unwrap();
                 let task_created_by_worker = task_id.worker();
                 let task_created_by_engine = task_id.engine();
-                Ok(engine_id == 1 && worker_id == 0 && task_created_by_worker == MAIN_THREAD_ID && task_created_by_engine == MAIN_THREAD_ID)
+                Ok(engine_id == 1
+                    && worker_id == 0
+                    && task_created_by_worker == MAIN_THREAD_ID
+                    && task_created_by_engine == MAIN_THREAD_ID)
             })
             .join();
 
@@ -528,7 +570,8 @@ mod tests {
     fn test_more_than_max_dedicated_worker_cannot_be_created() {
         let mut builder = ExecutionEngineBuilder::new();
         for i in 0..(MAX_NUM_OF_DEDICATED_WORKERS + 1) {
-            builder = builder.with_dedicated_worker(("id".to_string() + &i.to_string()).into(), ThreadParameters::default());
+            builder =
+                builder.with_dedicated_worker(("id".to_string() + &i.to_string()).into(), ThreadParameters::default());
         }
     }
 

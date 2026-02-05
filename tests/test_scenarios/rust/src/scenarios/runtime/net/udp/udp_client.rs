@@ -21,7 +21,10 @@ use tracing::{debug, info};
 
 fn parse_message(input: &str) -> String {
     let input_content: Value = serde_json::from_str(input).expect("Failed to parse input string");
-    input_content["message"].as_str().expect("Failed to parse \"message\" field").to_string()
+    input_content["message"]
+        .as_str()
+        .expect("Failed to parse \"message\" field")
+        .to_string()
 }
 
 fn parse_client_type(input: &str) -> String {
@@ -45,11 +48,11 @@ async fn send_receive_log(udp_socket: Arc<UdpSocket>, address: SocketAddr, messa
             Ok(m) => {
                 written += m;
                 debug!("Written {} bytes", m);
-            }
+            },
             Err(e) => {
                 info!(send_to_error = format!("Write error: {:?}", e));
                 break;
-            }
+            },
         }
     }
 
@@ -59,10 +62,10 @@ async fn send_receive_log(udp_socket: Arc<UdpSocket>, address: SocketAddr, messa
             let received_message = String::from_utf8_lossy(&buf[..n]).into_owned();
             let address = format!("{}:{}", sender_addr.ip(), sender_addr.port());
             info!(received_bytes = n, received_message, address);
-        }
+        },
         Err(e) => {
             info!(recv_from_error = format!("Read error: {:?}", e));
-        }
+        },
     }
 }
 
@@ -81,11 +84,11 @@ async fn connect_send_receive_log(udp_socket: Arc<UdpSocket>, address: SocketAdd
             Ok(m) => {
                 written += m;
                 debug!("Written {} bytes", m);
-            }
+            },
             Err(e) => {
                 info!(send_error = format!("Write error: {:?}", e));
                 break;
-            }
+            },
         }
     }
 
@@ -94,10 +97,10 @@ async fn connect_send_receive_log(udp_socket: Arc<UdpSocket>, address: SocketAdd
         Ok(n) => {
             let received_message = String::from_utf8_lossy(&buf[..n]).into_owned();
             info!(received_bytes = n, received_message);
-        }
+        },
         Err(e) => {
             info!(recv_error = format!("Read error: {:?}", e));
-        }
+        },
     }
 }
 
@@ -111,16 +114,27 @@ impl Scenario for UdpClientLogResponse {
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
 
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
         let message = parse_message(input);
         let client_type = parse_client_type(input);
 
         rt.block_on(async move {
             let client = Arc::new(create_default_udp_client(connection_parameters.get_address()).await);
             if client_type == "connected" {
-                let _ = spawn(connect_send_receive_log(client.clone(), connection_parameters.get_address(), message)).await;
+                let _ = spawn(connect_send_receive_log(
+                    client.clone(),
+                    connection_parameters.get_address(),
+                    message,
+                ))
+                .await;
             } else if client_type == "unconnected" {
-                let _ = spawn(send_receive_log(client.clone(), connection_parameters.get_address(), message)).await;
+                let _ = spawn(send_receive_log(
+                    client.clone(),
+                    connection_parameters.get_address(),
+                    message,
+                ))
+                .await;
             } else {
                 panic!("Client type must be either \"connected\" or \"unconnected\"");
             }
@@ -143,11 +157,11 @@ async fn unconnected_send(udp_socket: Arc<UdpSocket>, message: String) {
             Ok(m) => {
                 written += m;
                 debug!("Written {} bytes", m);
-            }
+            },
             Err(e) => {
                 info!(send_error = format!("Write error: {:?}", e));
                 break;
-            }
+            },
         }
     }
 }
@@ -162,7 +176,8 @@ impl Scenario for UdpClientUnconnectedSendError {
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
 
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
         let message = parse_message(input);
         let client_type = parse_client_type(input);
 

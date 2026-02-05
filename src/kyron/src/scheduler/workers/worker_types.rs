@@ -199,7 +199,10 @@ impl WorkerInteractor {
     pub fn request_stop(&self, io: &IoDriverUnparker) {
         let _guard = self.mtx.lock().unwrap();
         // Set the state to shutting down
-        let prev = self.state.0.swap(WORKER_STATE_SHUTTINGDOWN, ::core::sync::atomic::Ordering::SeqCst);
+        let prev = self
+            .state
+            .0
+            .swap(WORKER_STATE_SHUTTINGDOWN, ::core::sync::atomic::Ordering::SeqCst);
         if prev == WORKER_STATE_SLEEPING_CV {
             self.cv.notify_one();
         } else if prev == WORKER_STATE_SLEEPING_IO {
@@ -231,26 +234,26 @@ impl WorkerInteractor {
         match self.state.0.swap(WORKER_STATE_NOTIFIED, Ordering::SeqCst) {
             WORKER_STATE_NOTIFIED => {
                 //Nothing to do, already someone did if for us
-            }
+            },
             WORKER_STATE_SLEEPING_CV => {
                 drop(self.mtx.lock().unwrap()); // Synchronize so worker does not lose the notification in before it goes into a wait
                 self.cv.notify_one(); // notify without lock in case we get preempted by woken thread
                 trace!("Unparked worker sleeping on CV");
-            }
+            },
             WORKER_STATE_SLEEPING_IO => {
                 driver.unpark();
                 trace!("Unparked worker sleeping on IO");
-            }
+            },
             WORKER_STATE_EXECUTING => {
                 //Nothing to do, looks like we already running
-            }
+            },
             WORKER_STATE_SHUTTINGDOWN => {
                 // Put back SHUTTINGDOWN state, so we can shutdown properly
                 self.state.0.store(WORKER_STATE_SHUTTINGDOWN, Ordering::SeqCst);
-            }
+            },
             _ => {
                 panic!("Inconsistent/not handled state when unparking worker!")
-            }
+            },
         };
     }
 
@@ -338,17 +341,19 @@ impl WorkerInteractor {
                 // We were notified before, so we shall continue
                 scheduler.transition_from_parked(self.worker_id);
 
-                self.state.0.store(WORKER_STATE_EXECUTING, ::core::sync::atomic::Ordering::SeqCst);
+                self.state
+                    .0
+                    .store(WORKER_STATE_EXECUTING, ::core::sync::atomic::Ordering::SeqCst);
                 debug!("Notified while try to sleep, searching again");
                 false
-            }
+            },
             Err(WORKER_STATE_SHUTTINGDOWN) => {
                 // If we should shutdown, we simply need to return. And the run loop exits itself.
                 false
-            }
+            },
             Err(s) => {
                 not_recoverable_error!(with s, "Inconsistent state when parking");
-            }
+            },
         }
     }
 
@@ -368,19 +373,22 @@ impl WorkerInteractor {
                 scheduler.transition_from_parked(self.worker_id);
                 debug!("Unparked from CV({}) by notification", info);
                 false
-            }
+            },
             Err(WORKER_STATE_SHUTTINGDOWN) => {
                 // break here and run loop will exit
                 false
-            }
+            },
             Err(_) => {
                 true // spurious wake-up, or any other wakeup
-            }
+            },
         }
     }
 
     fn move_to_executing(&self, scheduler: &AsyncScheduler) {
-        let prev = self.state.0.swap(WORKER_STATE_EXECUTING, ::core::sync::atomic::Ordering::SeqCst);
+        let prev = self
+            .state
+            .0
+            .swap(WORKER_STATE_EXECUTING, ::core::sync::atomic::Ordering::SeqCst);
 
         if prev == WORKER_STATE_SHUTTINGDOWN {
             // Put back SHUTTINGDOWN state, so we can shutdown properly

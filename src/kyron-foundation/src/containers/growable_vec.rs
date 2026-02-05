@@ -165,7 +165,9 @@ impl<T> Into<Vec<T>> for GrowableVec<T> {
 
         // Reverse order
         for _ in 0..self.len() {
-            first.push(self.pop().unwrap()).expect("Failed to push value during conversion");
+            first
+                .push(self.pop().unwrap())
+                .expect("Failed to push value during conversion");
         }
 
         let len = first.len();

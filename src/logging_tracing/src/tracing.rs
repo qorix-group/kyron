@@ -65,7 +65,7 @@ impl TryFrom<LogAndTraceBuilder> for TracingLibraryImpl {
                         Some(l) => l.and_then(perfetto_layer).boxed(),
                         None => perfetto_layer.boxed(),
                     })
-                }
+                },
                 TraceScope::SystemScope => {
                     let perfetto_layer = layer::SdkLayer::from_config(system_trace_config(), None)
                         .with_enable_system(true)
@@ -76,7 +76,7 @@ impl TryFrom<LogAndTraceBuilder> for TracingLibraryImpl {
                         Some(l) => l.and_then(perfetto_layer).boxed(),
                         None => perfetto_layer.boxed(),
                     })
-                }
+                },
             }
         }
 

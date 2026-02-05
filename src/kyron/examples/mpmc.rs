@@ -38,7 +38,8 @@ fn main() {
         .with_max_level(Level::DEBUG)
         .init();
 
-    let (builder, _engine_id) = kyron::runtime::RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(1));
+    let (builder, _engine_id) =
+        kyron::runtime::RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(1));
     let mut runtime = builder.build().unwrap();
 
     runtime.block_on(async {

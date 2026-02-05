@@ -98,7 +98,10 @@ impl ThreadWaitBarrier {
     /// * `Ok(())` - If all threads signaled readiness within the timeout.
     /// * `Err(CommonErrors::Timeout)` - If the timeout was reached before all threads signaled readiness.
     pub fn wait_for_all(&self, dur: Duration) -> Result<(), CommonErrors> {
-        let res = self.cv.wait_timeout_while(self.mtx.lock().unwrap(), dur, |cond| *cond > 0).unwrap();
+        let res = self
+            .cv
+            .wait_timeout_while(self.mtx.lock().unwrap(), dur, |cond| *cond > 0)
+            .unwrap();
 
         if res.1.timed_out() {
             Err(CommonErrors::Timeout)

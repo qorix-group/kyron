@@ -57,7 +57,10 @@ impl<T> Queue<T> {
         }
 
         unsafe {
-            self.data.as_mut_ptr().add(self.head & (self.capacity - 1)).write(MaybeUninit::new(item));
+            self.data
+                .as_mut_ptr()
+                .add(self.head & (self.capacity - 1))
+                .write(MaybeUninit::new(item));
         }
         self.head += 1;
         true
@@ -68,7 +71,13 @@ impl<T> Queue<T> {
             return None;
         }
 
-        let item: T = unsafe { replace(&mut *self.data.as_mut_ptr().add(self.tail & (self.capacity - 1)), MaybeUninit::uninit()).assume_init() };
+        let item: T = unsafe {
+            replace(
+                &mut *self.data.as_mut_ptr().add(self.tail & (self.capacity - 1)),
+                MaybeUninit::uninit(),
+            )
+            .assume_init()
+        };
 
         self.tail += 1;
         Some(item)

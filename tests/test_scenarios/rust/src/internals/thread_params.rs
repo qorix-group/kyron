@@ -90,7 +90,11 @@ pub fn current_thread_priority_params() -> ThreadPriorityParams {
         let thread = libc::pthread_self();
         let mut policy: libc::c_int = -1;
         let mut param = MaybeUninit::<libc::sched_param>::zeroed().assume_init();
-        let rc = libc::pthread_getschedparam(thread, &mut policy as *mut libc::c_int, &mut param as *mut libc::sched_param);
+        let rc = libc::pthread_getschedparam(
+            thread,
+            &mut policy as *mut libc::c_int,
+            &mut param as *mut libc::sched_param,
+        );
         if rc != 0 {
             let errno = *libc::__errno_location();
             panic!("libc::pthread_getschedparam failed, rc: {rc}, errno: {errno}");

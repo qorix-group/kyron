@@ -58,7 +58,12 @@ impl ThreadParameters {
     }
 }
 
-pub(crate) fn spawn_thread<T, F>(tname: &'static str, id: &WorkerId, f: F, thread_params: &ThreadParameters) -> Result<Thread, ThreadSpawnError>
+pub(crate) fn spawn_thread<T, F>(
+    tname: &'static str,
+    id: &WorkerId,
+    f: F,
+    thread_params: &ThreadParameters,
+) -> Result<Thread, ThreadSpawnError>
 where
     T: Debug + Send + 'static,
     F: FnOnce() -> T + Send + 'static,

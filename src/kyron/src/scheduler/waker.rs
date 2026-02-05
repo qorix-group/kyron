@@ -168,11 +168,11 @@ mod tests {
                 Some(waker) => {
                     // If we had prev, then it shall be from current store
                     assert_eq!(waker.data(), w.data());
-                }
+                },
                 None => {
                     // The value must have been either here or there
                     assert!(store.take().is_some() ^ waker_from_thread.is_some());
-                }
+                },
             };
         });
     }

@@ -140,11 +140,16 @@ impl TimeWheel {
     }
 
     pub(super) fn aquire_slot(&mut self, info: &ExpireInfo) -> TimeSlotIterator {
-        assert!(info.level == self.level, "Trying to acquire slot from a different level");
+        assert!(
+            info.level == self.level,
+            "Trying to acquire slot from a different level"
+        );
 
         self.occupied_slots.fetch_and(!(1 << info.slot_id), Ordering::Relaxed);
 
-        let entries = self.slots[info.slot_id as usize].head.swap(::core::ptr::null_mut(), Ordering::Relaxed);
+        let entries = self.slots[info.slot_id as usize]
+            .head
+            .swap(::core::ptr::null_mut(), Ordering::Relaxed);
 
         TimeSlotIterator { head: entries }
     }
@@ -165,11 +170,11 @@ impl TimeWheel {
             {
                 Ok(_) => {
                     break; // Head points to new item, we can exit the loop
-                }
+                },
                 Err(_) => {
                     // If the head was changed, we retry
                     continue;
-                }
+                },
             }
         }
     }

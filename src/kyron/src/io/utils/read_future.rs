@@ -40,6 +40,8 @@ impl<R: AsyncRead + Unpin + ?Sized> Future for ReadFuture<'_, R> {
         let Self { reader, buf } = &mut *self;
         let before = buf.filled().len();
 
-        Pin::new(reader).poll_read(cx, buf).map(|_| Ok(buf.filled().len() - before))
+        Pin::new(reader)
+            .poll_read(cx, buf)
+            .map(|_| Ok(buf.filled().len() - before))
     }
 }

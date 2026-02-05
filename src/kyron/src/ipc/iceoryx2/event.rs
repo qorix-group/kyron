@@ -83,7 +83,9 @@ where
     /// the error in detail.
     pub async fn wait_one(&self) -> Result<EventId, ListenerWaitError> {
         self.io
-            .async_call(IoEventInterest::READABLE, |raw_fd| raw_fd.io_call(|_| self.wait_one_internal()))
+            .async_call(IoEventInterest::READABLE, |raw_fd| {
+                raw_fd.io_call(|_| self.wait_one_internal())
+            })
             .await
             .map_err(|_| ListenerWaitError::InternalFailure)
             .and_then(|r| match r {
@@ -107,18 +109,18 @@ where
                             Ok(Ok(event)) => {
                                 callback(event);
                                 called_at_least_once = true;
-                            }
+                            },
                             Ok(Err(e)) => {
                                 warn!("Error waiting for iceoryx2 event: {}", e);
                                 return Ok(Err(e));
-                            }
+                            },
                             // This means all samples are fetched out, we can exit
                             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock && called_at_least_once => {
                                 return Ok(Ok(()));
-                            }
+                            },
                             Err(e) => {
                                 return Err(e);
-                            }
+                            },
                         }
                     }
                 })
@@ -143,14 +145,14 @@ where
                     } else {
                         not_recoverable_error!(with err, "Other errors shall not be captured under Ok(None) returned from try_wait_one !");
                     }
-                }
+                },
                 Err(ListenerWaitError::InterruptSignal) => {
                     continue;
-                }
+                },
                 Err(e) => {
                     error!("Error waiting for iceoryx2 event: {}", e);
                     return Ok(Err(e));
-                }
+                },
             }
         }
     }

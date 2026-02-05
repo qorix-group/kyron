@@ -33,7 +33,14 @@ impl<T> Iterator for QueuePtrIterator<'_, T> {
             return None;
         }
 
-        let item = unsafe { Some(self.guard.data.as_mut_ptr().add(self.guard.tail & (self.guard.capacity - 1))) };
+        let item = unsafe {
+            Some(
+                self.guard
+                    .data
+                    .as_mut_ptr()
+                    .add(self.guard.tail & (self.guard.capacity - 1)),
+            )
+        };
         self.guard.tail += 1;
         item
     }

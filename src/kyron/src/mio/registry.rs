@@ -23,11 +23,21 @@ impl<T: IoSelector> Registry<T> {
         Registry { selector }
     }
 
-    pub fn register<Source: IoRegistryEntry<T>>(&self, source: &mut Source, id: IoId, interest: IoEventInterest) -> Result<()> {
+    pub fn register<Source: IoRegistryEntry<T>>(
+        &self,
+        source: &mut Source,
+        id: IoId,
+        interest: IoEventInterest,
+    ) -> Result<()> {
         source.register(self, id, interest)
     }
 
-    pub fn reregister<Source: IoRegistryEntry<T>>(&self, source: &mut Source, id: IoId, interest: IoEventInterest) -> Result<()> {
+    pub fn reregister<Source: IoRegistryEntry<T>>(
+        &self,
+        source: &mut Source,
+        id: IoId,
+        interest: IoEventInterest,
+    ) -> Result<()> {
         source.reregister(id, interest)
     }
 

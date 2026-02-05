@@ -104,7 +104,10 @@ impl Runtime {
     }
 
     pub fn build(&self) -> kyron::runtime::Runtime {
-        debug!("Creating kyron::Runtime with {} execution engines", self.exec_engines.len());
+        debug!(
+            "Creating kyron::Runtime with {} execution engines",
+            self.exec_engines.len()
+        );
 
         let mut async_rt_builder = kyron::runtime::RuntimeBuilder::new();
         for exec_engine in self.exec_engines.as_slice() {
@@ -140,7 +143,8 @@ impl Runtime {
                     // Create `UniqueWorkerId`.
                     let unique_worker_id = UniqueWorkerId::from(&dedicated_worker.id);
 
-                    exec_engine_builder = exec_engine_builder.with_dedicated_worker(unique_worker_id, async_rt_thread_params);
+                    exec_engine_builder =
+                        exec_engine_builder.with_dedicated_worker(unique_worker_id, async_rt_thread_params);
                 }
             }
 

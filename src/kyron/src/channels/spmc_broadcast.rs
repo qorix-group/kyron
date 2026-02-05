@@ -47,7 +47,9 @@ pub fn create_channel<T: Copy, const SIZE: usize>(max_num_of_receivers: u16) -> 
 ///
 /// Creates Single Producer Multiple Consumer channel with [`DEFAULT_CHANNEL_SIZE`] capacity. Please keep in mind this is broadcast channel, so all `Receiver`s will receive the same value.
 ///
-pub fn create_channel_default<T: Copy>(max_num_of_receivers: u16) -> (Sender<T, DEFAULT_CHANNEL_SIZE>, Receiver<T, DEFAULT_CHANNEL_SIZE>) {
+pub fn create_channel_default<T: Copy>(
+    max_num_of_receivers: u16,
+) -> (Sender<T, DEFAULT_CHANNEL_SIZE>, Receiver<T, DEFAULT_CHANNEL_SIZE>) {
     let mut chan = Arc::new(Channel::new(max_num_of_receivers as usize));
     // Initialize the channel to set up the UniqueIndexSet after it is placed in an Arc.
     // Since UniqueIndexSet uses self-referential pointers, it must be initialized after being placed in Arc.
@@ -235,14 +237,14 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
             let r = self.channels[c].send(value);
 
             match r {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(CommonErrors::GenericError) => {
                     i += 1;
 
                     if i == len {
                         ret = Err(CommonErrors::GenericError)
                     }
-                }
+                },
                 Err(_) => ret = r,
             }
         }
@@ -250,7 +252,12 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
         ret
     }
 
-    fn receive(&self, index: usize, consumer: &mut spsc::queue::Consumer<'_, T, SIZE>, waker: Waker) -> Result<T, CommonErrors> {
+    fn receive(
+        &self,
+        index: usize,
+        consumer: &mut spsc::queue::Consumer<'_, T, SIZE>,
+        waker: Waker,
+    ) -> Result<T, CommonErrors> {
         self.channels[index].receive(consumer, waker)
     }
 
@@ -287,18 +294,23 @@ unsafe impl<T: Copy, const SIZE: usize> Send for ReceiverFuture<'_, T, SIZE> {}
 impl<T: Copy, const SIZE: usize> Future for ReceiverFuture<'_, T, SIZE> {
     type Output = Option<T>;
 
-    fn poll(mut self: ::core::pin::Pin<&mut Self>, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<Self::Output> {
+    fn poll(
+        mut self: ::core::pin::Pin<&mut Self>,
+        cx: &mut ::core::task::Context<'_>,
+    ) -> ::core::task::Poll<Self::Output> {
         let res = match self.state {
-            FutureState::New | FutureState::Polled => self.parent.receive(&mut self.consumer, cx.waker().clone()).map_or_else(
-                |e| {
-                    if e == CommonErrors::NoData {
-                        FutureInternalReturn::polled()
-                    } else {
-                        FutureInternalReturn::ready(None)
-                    }
-                },
-                |v| FutureInternalReturn::ready(Some(v)),
-            ),
+            FutureState::New | FutureState::Polled => {
+                self.parent.receive(&mut self.consumer, cx.waker().clone()).map_or_else(
+                    |e| {
+                        if e == CommonErrors::NoData {
+                            FutureInternalReturn::polled()
+                        } else {
+                            FutureInternalReturn::ready(None)
+                        }
+                    },
+                    |v| FutureInternalReturn::ready(Some(v)),
+                )
+            },
             FutureState::Finished => not_recoverable_error!("Cannot reuse future!"),
         };
 
@@ -427,11 +439,14 @@ mod tests {
 
         let (waker, _) = get_dummy_task_waker();
 
-        let mut poller1 = TestingFuturePoller::new(async move { vec![r1.recv().await.unwrap(), r1.recv().await.unwrap()] });
+        let mut poller1 =
+            TestingFuturePoller::new(async move { vec![r1.recv().await.unwrap(), r1.recv().await.unwrap()] });
 
-        let mut poller2 = TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
+        let mut poller2 =
+            TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
 
-        let mut poller3 = TestingFuturePoller::new(async move { vec![r3.recv().await.unwrap(), r3.recv().await.unwrap()] });
+        let mut poller3 =
+            TestingFuturePoller::new(async move { vec![r3.recv().await.unwrap(), r3.recv().await.unwrap()] });
 
         let res1 = poller1.poll_with_waker(&waker);
         let res2 = poller2.poll_with_waker(&waker);
@@ -495,9 +510,12 @@ mod tests {
 
         let (waker, _) = get_dummy_task_waker();
 
-        let mut poller1 = TestingFuturePoller::new(async move { vec![r1.recv().await.unwrap(), r1.recv().await.unwrap()] });
-        let mut poller2 = TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
-        let mut poller3 = TestingFuturePoller::new(async move { vec![r3.recv().await.unwrap(), r3.recv().await.unwrap()] });
+        let mut poller1 =
+            TestingFuturePoller::new(async move { vec![r1.recv().await.unwrap(), r1.recv().await.unwrap()] });
+        let mut poller2 =
+            TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
+        let mut poller3 =
+            TestingFuturePoller::new(async move { vec![r3.recv().await.unwrap(), r3.recv().await.unwrap()] });
 
         let res1 = poller1.poll_with_waker(&waker);
         let res2 = poller2.poll_with_waker(&waker);
@@ -519,7 +537,8 @@ mod tests {
         assert!(s.send(&2).is_ok()); // Should succeed for the remaining receiver
 
         let (waker, _) = get_dummy_task_waker();
-        let mut poller = TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
+        let mut poller =
+            TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
         let res = poller.poll_with_waker(&waker);
         assert_poll_ready(res, vec![1, 2]);
     }
@@ -540,7 +559,8 @@ mod tests {
         assert!(s.send(&2).is_ok()); // Should succeed for both receivers
 
         let (waker, _) = get_dummy_task_waker();
-        let mut poller2 = TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
+        let mut poller2 =
+            TestingFuturePoller::new(async move { vec![r2.recv().await.unwrap(), r2.recv().await.unwrap()] });
         let mut poller3 = TestingFuturePoller::new(async move { vec![r3.recv().await.unwrap()] });
 
         let res2 = poller2.poll_with_waker(&waker);
@@ -771,7 +791,7 @@ mod tests {
 
             assert_poll_ready(res1, input.clone());
             match res2 {
-                ::core::task::Poll::Pending => {}
+                ::core::task::Poll::Pending => {},
                 _ => assert_poll_ready(res2, input.clone()),
             }
         });

@@ -73,7 +73,9 @@ pub async fn create_tcp_listener(connection_parameters: ConnectionParameters) ->
 }
 
 pub async fn create_tcp_stream(connection_parameters: ConnectionParameters) -> TcpStream {
-    let stream = TcpStream::connect(connection_parameters.address).await.expect("Failed to connect");
+    let stream = TcpStream::connect(connection_parameters.address)
+        .await
+        .expect("Failed to connect");
 
     // Set optional TTL.
     if let Some(ttl) = connection_parameters.ttl {

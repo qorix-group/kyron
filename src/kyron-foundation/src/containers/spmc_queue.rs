@@ -158,7 +158,8 @@ impl<T: Send> SpmcStealQueue<T> {
     pub fn new(size: u32) -> Self {
         assert!(size.is_power_of_two());
 
-        let layout = Layout::array::<UnsafeCell<MaybeUninit<T>>>(size as usize).expect("Invalid layout for array provided");
+        let layout =
+            Layout::array::<UnsafeCell<MaybeUninit<T>>>(size as usize).expect("Invalid layout for array provided");
 
         let ptr = unsafe { alloc::alloc(layout) as *mut UnsafeCell<MaybeUninit<T>> };
 
@@ -321,7 +322,9 @@ impl<T: Send> SpmcStealQueue<T> {
         let head = self.head.load(Ordering::Relaxed); // Write only from current thread
         let tail = self.tail.load(Ordering::Acquire); // Access by multiple threads, so we want to make sure other threads have made visible all operations prior to Release
 
-        let num_possible = mpmc.len().min((self.capacity - Self::count_internal(head, tail)) as usize);
+        let num_possible = mpmc
+            .len()
+            .min((self.capacity - Self::count_internal(head, tail)) as usize);
         let mut num_items = 0;
 
         // Head index is only mutated when being here by single thread and is borrowed only once mutation finishes, so Cell req are fulfilled
@@ -415,13 +418,15 @@ impl<T: Send> SpmcStealQueue<T> {
             let next_real_tail = real_tail.wrapping_add(expected_steel_count);
             let expected_tail = Self::pack_tail(steal, next_real_tail); // For now steel is as it was, this will mark that we are stealing and prevent others to steal from us
 
-            let res = self.tail.compare_exchange(tail, expected_tail, Ordering::AcqRel, Ordering::Acquire);
+            let res = self
+                .tail
+                .compare_exchange(tail, expected_tail, Ordering::AcqRel, Ordering::Acquire);
 
             match res {
                 Ok(_) => break (real_tail & self.access_mask, expected_steel_count),
                 Err(actual) => {
                     tail = actual; // Lets try again, as someone else was doing something to queue
-                }
+                },
             }
         };
 
@@ -437,7 +442,9 @@ impl<T: Send> SpmcStealQueue<T> {
                 let dst_index = ((dst_head + i) & dst.access_mask) as usize;
                 let dst_entry: &UnsafeCell<MaybeUninit<T>> = &dst.data[dst_index];
 
-                (*dst_entry.get()).as_mut_ptr().write((*src_entry.get()).as_ptr().read());
+                (*dst_entry.get())
+                    .as_mut_ptr()
+                    .write((*src_entry.get()).as_ptr().read());
             }
         }
 
@@ -447,12 +454,14 @@ impl<T: Send> SpmcStealQueue<T> {
 
             let expected_tail = Self::pack_tail(real_tail, real_tail); // We are done, try align steal and tail to either our tail value or someone else if higher
 
-            let res = self.tail.compare_exchange(tail, expected_tail, Ordering::AcqRel, Ordering::SeqCst);
+            let res = self
+                .tail
+                .compare_exchange(tail, expected_tail, Ordering::AcqRel, Ordering::SeqCst);
 
             match res {
                 Ok(_) => {
                     return count;
-                }
+                },
                 Err(actual) => tail = actual,
             }
         }
@@ -500,7 +509,7 @@ impl<T: Send> SpmcStealQueue<T> {
             match res {
                 Ok(_) => {
                     break;
-                }
+                },
                 Err(actual) => tail = actual,
             }
         }
@@ -810,7 +819,12 @@ mod tests {
         }
 
         let is_more_than_20 = remaining_in_queue > (vec_produced.len() as f32 * 0.2) as u32;
-        assert!(!is_more_than_20, "Was all {}, remaining {}", vec_produced.len(), remaining_in_queue); // We assume no more than 20% can stay in queue on producer thread
+        assert!(
+            !is_more_than_20,
+            "Was all {}, remaining {}",
+            vec_produced.len(),
+            remaining_in_queue
+        ); // We assume no more than 20% can stay in queue on producer thread
 
         // We may have some things in global queue now, we need to account them into comparison
         while let Some(v) = mpmc.pop() {
@@ -889,7 +903,12 @@ mod tests {
         }
 
         let is_more_than_20 = remaining_in_queue > (worker1_vec.len() as f32 * 0.2) as u32;
-        assert!(!is_more_than_20, "Was all {}, remaining {}", vec_produced.len(), remaining_in_queue); // We assume no more than 20% can stay in queue on producer thread
+        assert!(
+            !is_more_than_20,
+            "Was all {}, remaining {}",
+            vec_produced.len(),
+            remaining_in_queue
+        ); // We assume no more than 20% can stay in queue on producer thread
 
         // We may have some things in global queue now, we need to account them into comparison
         while let Some(v) = mpmc.pop() {

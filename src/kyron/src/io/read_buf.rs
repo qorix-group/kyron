@@ -149,7 +149,11 @@ impl<'a> ReadBuf<'a> {
         // Above assert ensures no overflow
         let filled_slice_uninit = &mut self.buf[self.filled..self.filled + len];
 
-        unsafe { filled_slice_uninit.as_mut_ptr().copy_from_nonoverlapping(buf.as_ptr().cast(), buf.len()) };
+        unsafe {
+            filled_slice_uninit
+                .as_mut_ptr()
+                .copy_from_nonoverlapping(buf.as_ptr().cast(), buf.len())
+        };
 
         self.filled += len;
 

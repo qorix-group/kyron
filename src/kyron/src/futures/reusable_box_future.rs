@@ -125,7 +125,7 @@ impl<OutType> ReusableBoxFuturePool<OutType> {
             ::core::sync::atomic::Ordering::AcqRel,
             ::core::sync::atomic::Ordering::Acquire,
         ) {
-            Ok(_) => {}
+            Ok(_) => {},
             Err(_) => return Err(CommonErrors::NoData), // next is not free yet, this is user problem now
         }
 
@@ -189,7 +189,7 @@ impl<OutType> Drop for ReusableBoxFuturePool<OutType> {
                 ::core::sync::atomic::Ordering::AcqRel,
                 ::core::sync::atomic::Ordering::Acquire,
             ) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(actual) => unsafe {
                     assert_eq!(actual, FUTURE_FREE);
 
@@ -231,7 +231,7 @@ impl<OutType> Drop for ReusableBoxFuture<OutType> {
                     ::core::sync::atomic::Ordering::AcqRel,
                     ::core::sync::atomic::Ordering::Acquire,
                 ) {
-                    Ok(_) => {}
+                    Ok(_) => {},
 
                     // Means that pool is dropped probably and we need to cleanup own memory
                     Err(val) => {
@@ -239,7 +239,7 @@ impl<OutType> Drop for ReusableBoxFuture<OutType> {
                         unsafe {
                             dealloc(self.this.memory.as_ptr() as *mut u8, self.this.layout);
                         }
-                    }
+                    },
                 }
             }
         }
@@ -580,7 +580,10 @@ mod tests {
             drop(o);
         }));
 
-        assert_eq!("I am panicking....".to_owned(), *result.err().unwrap().downcast::<&str>().unwrap());
+        assert_eq!(
+            "I am panicking....".to_owned(),
+            *result.err().unwrap().downcast::<&str>().unwrap()
+        );
 
         assert!(panic_mock.was_dropped());
 

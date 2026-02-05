@@ -90,7 +90,11 @@ impl<S: IoSelector> AsyncRegistration<S> {
         handle: IoDriverHandle<S>,
     ) -> Result<Self, CommonErrors> {
         let info = handle.add_io_source(mio, interest)?;
-        debug!("AsyncRegistration: Connecting {:?} with MIO object {:?}", info.tracing_id(), mio);
+        debug!(
+            "AsyncRegistration: Connecting {:?} with MIO object {:?}",
+            info.tracing_id(),
+            mio
+        );
 
         Ok(AsyncRegistration { inner: info, handle })
     }
@@ -113,7 +117,7 @@ pub(crate) struct RegistrationInfo {
 #[derive(Default)]
 struct WakersCollection {
     // For Async trait there can be only one of them at a time and upper layers needs to ensure it
-    read: Option<Waker>,  // Slot used for AsyncRead, so polling API where there is no way to store anywhere waker
+    read: Option<Waker>, // Slot used for AsyncRead, so polling API where there is no way to store anywhere waker
     write: Option<Waker>, // Slot used for AsyncWrite, so polling API where there is no way to store anywhere waker
 
     // This is used for async API directly over ReadinessFuture which can hold a waker inside itself so we can put it into intrusive list.
@@ -203,7 +207,11 @@ impl RegistrationInfo {
         let mut iter = offloader.iter_mut();
 
         let mut wakers = self.wakers.lock().unwrap();
-        trace!("{:?}: Waking up wakers for readiness: {:?}", self.tracing_id(), readiness);
+        trace!(
+            "{:?}: Waking up wakers for readiness: {:?}",
+            self.tracing_id(),
+            readiness
+        );
 
         if readiness.is_readable() {
             if let Some(waker) = wakers.read.take() {
@@ -271,7 +279,11 @@ impl RegistrationInfo {
         readiness.intersection(interest.into())
     }
 
-    fn poll_register_interest(&self, interest: IoEventInterest, cx: &mut Context<'_>) -> FutureInternalReturn<ReadinessState> {
+    fn poll_register_interest(
+        &self,
+        interest: IoEventInterest,
+        cx: &mut Context<'_>,
+    ) -> FutureInternalReturn<ReadinessState> {
         let mut ready = self.is_ready(interest);
 
         // If we have something ready, we can return it immediately
@@ -283,7 +295,11 @@ impl RegistrationInfo {
         let mut wakers = self.wakers.lock().unwrap();
 
         // In this PR we only care about single wakers, lets choose one
-        let waker = if interest.is_readable() { &mut wakers.read } else { &mut wakers.write };
+        let waker = if interest.is_readable() {
+            &mut wakers.read
+        } else {
+            &mut wakers.write
+        };
 
         // Lets recheck if we are not ready while holding a lock
         ready = self.is_ready(interest);
@@ -303,23 +319,25 @@ impl RegistrationInfo {
     where
         F: FnMut(ReadinessState) -> Option<ReadinessState>,
     {
-        match self.readiness_state.fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| {
-            let mut typed_state = ReadinessState::from(state);
+        match self
+            .readiness_state
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| {
+                let mut typed_state = ReadinessState::from(state);
 
-            match tick_op {
-                TickOp::Clear(tick) if tick != typed_state.tick() => return None, // We are not allowed to clear this tick as we would clear readiness for older state than it's now here.
+                match tick_op {
+                    TickOp::Clear(tick) if tick != typed_state.tick() => return None, // We are not allowed to clear this tick as we would clear readiness for older state than it's now here.
 
-                TickOp::Clear(_) => {
-                    // Nothing to do, user will apply its closure
+                    TickOp::Clear(_) => {
+                        // Nothing to do, user will apply its closure
+                    },
+                    TickOp::Set => {
+                        typed_state.increment_tick(); // Just increment the tick as new states comes
+                    },
                 }
-                TickOp::Set => {
-                    typed_state.increment_tick(); // Just increment the tick as new states comes
-                }
-            }
 
-            // TICKs are private, user does not touch it
-            f(typed_state).map(Into::<u32>::into)
-        }) {
+                // TICKs are private, user does not touch it
+                f(typed_state).map(Into::<u32>::into)
+            }) {
             Ok(v) => Into::<ReadinessState>::into(v),
             Err(v) => Into::<ReadinessState>::into(v),
         }
@@ -425,7 +443,12 @@ impl ReadinessState {
 
 impl core::fmt::Debug for ReadinessState {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "ReadinessState(s: 0b{:b}, t: {})", self.extract_state(), self.extract_tick())
+        write!(
+            f,
+            "ReadinessState(s: 0b{:b}, t: {})",
+            self.extract_state(),
+            self.extract_tick()
+        )
     }
 }
 
@@ -516,10 +539,10 @@ impl<S: IoSelector> Future for ReadinessFuture<'_, S> {
 
                                 FutureInternalReturn::polled()
                             }
-                        }
+                        },
                     }
                 })
-            }
+            },
             FutureState::Polled => match self.registration.inner.is_ready(self.interest) {
                 Some(readiness) => {
                     let mut wakers = self.registration.inner.wakers.lock().unwrap();
@@ -529,12 +552,12 @@ impl<S: IoSelector> Future for ReadinessFuture<'_, S> {
                     });
 
                     FutureInternalReturn::ready(readiness)
-                }
+                },
                 _ => FutureInternalReturn::polled(),
             },
             FutureState::Finished => {
                 not_recoverable_error!(with self.registration.inner.tracing_id(), "Shall not poll finished future for ReadinessFuture")
-            }
+            },
         };
 
         self.state.borrow_mut().assign_and_propagate(state)
@@ -544,7 +567,13 @@ impl<S: IoSelector> Future for ReadinessFuture<'_, S> {
 impl<S: IoSelector> Drop for ReadinessFuture<'_, S> {
     fn drop(&mut self) {
         self.list_item.with(|item| {
-            self.registration.inner.wakers.lock().unwrap().waiters.remove(unsafe { &*item });
+            self.registration
+                .inner
+                .wakers
+                .lock()
+                .unwrap()
+                .waiters
+                .remove(unsafe { &*item });
         });
     }
 }
@@ -778,7 +807,12 @@ mod tests {
     }
 
     impl<T: AsRawFd> IoRegistryEntry<AsyncSelectorMock> for ProxyMock<T> {
-        fn register(&mut self, _registry: &Registry<AsyncSelectorMock>, _id: IoId, _interest: IoEventInterest) -> crate::mio::types::Result<()> {
+        fn register(
+            &mut self,
+            _registry: &Registry<AsyncSelectorMock>,
+            _id: IoId,
+            _interest: IoEventInterest,
+        ) -> crate::mio::types::Result<()> {
             Ok(())
         }
 
@@ -830,11 +864,21 @@ mod tests {
             Ok(())
         }
 
-        fn register(&self, _fd: std::os::unix::prelude::RawFd, _id: IoId, _interest: IoEventInterest) -> crate::mio::types::Result<()> {
+        fn register(
+            &self,
+            _fd: std::os::unix::prelude::RawFd,
+            _id: IoId,
+            _interest: IoEventInterest,
+        ) -> crate::mio::types::Result<()> {
             Ok(())
         }
 
-        fn reregister(&self, _fd: std::os::unix::prelude::RawFd, _id: IoId, _interest: IoEventInterest) -> crate::mio::types::Result<()> {
+        fn reregister(
+            &self,
+            _fd: std::os::unix::prelude::RawFd,
+            _id: IoId,
+            _interest: IoEventInterest,
+        ) -> crate::mio::types::Result<()> {
             Ok(())
         }
 
@@ -854,7 +898,12 @@ mod tests {
     #[derive(Clone, Debug)]
     pub struct IoMock {}
     impl IoRegistryEntry<AsyncSelectorMock> for IoMock {
-        fn register(&mut self, _registry: &Registry<AsyncSelectorMock>, _id: IoId, _interest: IoEventInterest) -> crate::mio::types::Result<()> {
+        fn register(
+            &mut self,
+            _registry: &Registry<AsyncSelectorMock>,
+            _id: IoId,
+            _interest: IoEventInterest,
+        ) -> crate::mio::types::Result<()> {
             Ok(())
         }
 
@@ -868,7 +917,10 @@ mod tests {
     }
 
     fn create_registration(interest: IoEventInterest) -> Arc<AsyncRegistration<AsyncSelectorMock>> {
-        let handle = IoDriverHandle::<AsyncSelectorMock>::new(Registry::new(AsyncSelectorMock {}), Arc::new(Registrations::new(1024)));
+        let handle = IoDriverHandle::<AsyncSelectorMock>::new(
+            Registry::new(AsyncSelectorMock {}),
+            Arc::new(Registrations::new(1024)),
+        );
         let mut mio = IoMock {};
         Arc::new(AsyncRegistration::new_internal(&mut mio, interest, handle).unwrap())
     }
@@ -900,12 +952,17 @@ mod tests {
             crate::testing::mock::runtime::step();
             assert_eq!(1, crate::testing::mock::runtime::remaining_tasks()); // We still have task not done
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
             crate::testing::mock::runtime::step();
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_writable(), "Expected writable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_writable(),
+                "Expected writable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
 
         // Readable readiness
@@ -916,12 +973,17 @@ mod tests {
             crate::testing::mock::runtime::step();
             assert_eq!(1, crate::testing::mock::runtime::remaining_tasks()); // We still have task not done
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
             crate::testing::mock::runtime::step();
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_readable(), "Expected readable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_readable(),
+                "Expected readable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
 
         // Multi readiness but readable
@@ -940,7 +1002,11 @@ mod tests {
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_readable(), "Expected readable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_readable(),
+                "Expected readable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
 
         // Multi readiness but writable
@@ -959,7 +1025,11 @@ mod tests {
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_writable(), "Expected writable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_writable(),
+                "Expected writable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
     }
 
@@ -976,12 +1046,17 @@ mod tests {
             crate::testing::mock::runtime::step();
             assert_eq!(1, crate::testing::mock::runtime::remaining_tasks()); // We still have task not done
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
             crate::testing::mock::runtime::step();
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_writable(), "Expected writable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_writable(),
+                "Expected writable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
 
         // 2. Try again, but this time we are not waiting for anything
@@ -993,7 +1068,11 @@ mod tests {
 
             let ret_val = *result.lock().unwrap();
             assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-            assert!(ret_val.unwrap().is_writable(), "Expected writable state, got: {:?}", ret_val.unwrap());
+            assert!(
+                ret_val.unwrap().is_writable(),
+                "Expected writable state, got: {:?}",
+                ret_val.unwrap()
+            );
         }
     }
 
@@ -1010,12 +1089,17 @@ mod tests {
         crate::testing::mock::runtime::step();
         assert_eq!(1, crate::testing::mock::runtime::remaining_tasks()); // We still have task not done
 
-        reg.inner.wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
+        reg.inner
+            .wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
         crate::testing::mock::runtime::step();
 
         let ret_val = *result.lock().unwrap();
         assert!(ret_val.is_ok(), "Expected Ok result, got: {:?}", ret_val);
-        assert!(ret_val.unwrap().is_writable(), "Expected writable state, got: {:?}", ret_val.unwrap());
+        assert!(
+            ret_val.unwrap().is_writable(),
+            "Expected writable state, got: {:?}",
+            ret_val.unwrap()
+        );
 
         // 2. Consume readiness
         reg.clear_readiness(ret_val.unwrap(), IoEventInterest::WRITABLE);
@@ -1043,7 +1127,8 @@ mod tests {
         assert_eq!(1, crate::testing::mock::runtime::remaining_tasks()); // We still have task not done
 
         // 2. Other readiness is set, but not requested
-        reg.inner.wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
+        reg.inner
+            .wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
 
         // 3. So no progress on Future even after multiple calls
         crate::testing::mock::runtime::step();
@@ -1085,7 +1170,8 @@ mod tests {
             let mut ret = reg.poll_readiness(&mut ctx, IoEventInterest::READABLE);
             assert!(ret.is_pending(), "Expected pending state, got: {:?}", ret);
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
 
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::READABLE);
 
@@ -1111,7 +1197,8 @@ mod tests {
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::READABLE);
             assert!(ret.is_pending(), "Expected pending state, got: {:?}", ret);
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_READABLE as u16, 0)); // Make task ready
 
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::READABLE);
 
@@ -1146,7 +1233,8 @@ mod tests {
             let mut ret = reg.poll_readiness(&mut ctx, IoEventInterest::WRITABLE);
             assert!(ret.is_pending(), "Expected pending state, got: {:?}", ret);
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
 
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::WRITABLE);
 
@@ -1172,7 +1260,8 @@ mod tests {
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::WRITABLE);
             assert!(ret.is_pending(), "Expected pending state, got: {:?}", ret);
 
-            reg.inner.wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
+            reg.inner
+                .wake(ReadinessState::from_components(READINESS_STATE_WRITABLE as u16, 0)); // Make task ready
 
             ret = reg.poll_readiness(&mut ctx, IoEventInterest::WRITABLE);
 
@@ -1338,7 +1427,10 @@ mod tests {
         // Test union is commutative
         let state1 = create_state_with_bits(0x1111_0001);
         let state2 = create_state_with_bits(0x2222_0002);
-        assert_eq!(state1.union(state2).extract_state(), state2.union(state1).extract_state());
+        assert_eq!(
+            state1.union(state2).extract_state(),
+            state2.union(state1).extract_state()
+        );
     }
 
     #[test]

@@ -31,13 +31,17 @@ impl Scenario for TcpServer {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             info!("Program entered engine");
 
             let listener = create_tcp_listener(connection_parameters).await;
-            info!("TCP server listening on {}", listener.local_addr().expect("Failed to get local address"));
+            info!(
+                "TCP server listening on {}",
+                listener.local_addr().expect("Failed to get local address")
+            );
 
             // Loop is expected to be terminated by SIGTERM from Python test.
             loop {
@@ -59,7 +63,10 @@ async fn handle_connection_no_response(mut stream: TcpStream) {
     // Addresses.
     let peer_addr = stream.peer_addr().expect("Failed to get peer address");
     let local_addr = stream.local_addr().expect("Failed to get local address");
-    info!(peer_addr = format!("{peer_addr:?}"), local_addr = format!("{local_addr:?}"));
+    info!(
+        peer_addr = format!("{peer_addr:?}"),
+        local_addr = format!("{local_addr:?}")
+    );
 
     // Read.
     let mut buf = [0u8; 1024];
@@ -68,15 +75,15 @@ async fn handle_connection_no_response(mut stream: TcpStream) {
         Ok(0) => {
             info!("Client closed connection");
             0
-        }
+        },
         Ok(n) => {
             info!("Read {n} bytes");
             n
-        }
+        },
         Err(e) => {
             info!("Read error: {e:?}");
             0
-        }
+        },
     };
 
     let message_read = String::from_utf8(buf[..n].to_vec()).expect("Failed to convert string from bytes");
@@ -91,13 +98,17 @@ impl Scenario for TcpNoResponseServer {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             info!("Program entered engine");
 
             let listener = create_tcp_listener(connection_parameters).await;
-            info!("TCP server listening on {}", listener.local_addr().expect("Failed to get local address"));
+            info!(
+                "TCP server listening on {}",
+                listener.local_addr().expect("Failed to get local address")
+            );
 
             // Loop is expected to be terminated by SIGTERM from Python test.
             loop {
@@ -120,7 +131,10 @@ pub async fn handle_connection_with_poll(mut stream: TcpStream) -> Result<(), Er
     // Addresses.
     let peer_addr = stream.peer_addr().expect("Failed to get peer address");
     let local_addr = stream.local_addr().expect("Failed to get local address");
-    info!(peer_addr = format!("{peer_addr:?}"), local_addr = format!("{local_addr:?}"));
+    info!(
+        peer_addr = format!("{peer_addr:?}"),
+        local_addr = format!("{local_addr:?}")
+    );
 
     // Read
     let mut buf = [0u8; 1024];
@@ -169,13 +183,17 @@ impl Scenario for TcpPollWriteServer {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             info!("Program entered engine");
 
             let listener = create_tcp_listener(connection_parameters).await;
-            info!("TCP server listening on {}", listener.local_addr().expect("Failed to get local address"));
+            info!(
+                "TCP server listening on {}",
+                listener.local_addr().expect("Failed to get local address")
+            );
 
             // Loop is expected to be terminated by SIGTERM from Python test.
             loop {
@@ -197,7 +215,11 @@ impl Scenario for TcpPollWriteServer {
 pub fn server_group() -> Box<dyn ScenarioGroup> {
     Box::new(ScenarioGroupImpl::new(
         "server",
-        vec![Box::new(TcpServer), Box::new(TcpNoResponseServer), Box::new(TcpPollWriteServer)],
+        vec![
+            Box::new(TcpServer),
+            Box::new(TcpNoResponseServer),
+            Box::new(TcpPollWriteServer),
+        ],
         vec![],
     ))
 }

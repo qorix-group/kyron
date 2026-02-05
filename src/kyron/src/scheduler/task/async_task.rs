@@ -170,11 +170,18 @@ where
     }
 
     unsafe fn poll_safety_vtable(this: NonNull<TaskHeader>, ctx: &mut Context) -> TaskPollResult {
-        let instance = this.as_ptr().cast::<AsyncTask<Result<T, E>, AllocatedFuture, SchedulerType>>();
+        let instance = this
+            .as_ptr()
+            .cast::<AsyncTask<Result<T, E>, AllocatedFuture, SchedulerType>>();
         unsafe { (*instance).poll_safety(ctx) }
     }
 
-    pub(crate) fn new_safety(is_with_safety: bool, future: Pin<AllocatedFuture>, worker_id: &WorkerId, scheduler: SchedulerType) -> Self {
+    pub(crate) fn new_safety(
+        is_with_safety: bool,
+        future: Pin<AllocatedFuture>,
+        worker_id: &WorkerId,
+        scheduler: SchedulerType,
+    ) -> Self {
         Self {
             header: TaskHeader::new_safety::<T, E, AllocatedFuture, SchedulerType>(worker_id),
             stage: UnsafeCell::new(TaskStage::InProgress(future)),
@@ -229,7 +236,7 @@ where
                 // Since the abort cannot happen while awaiting on Task (we don't have AbortHandle as of now with would allow remote abort), we don't have any racing on stage due to `get_future_ret`
                 self.clear_stage();
                 true
-            }
+            },
             TransitionToCanceled::AlreadyDone => false, // We don't know whether first caller finished with Done or DoneWhileRunning
             TransitionToCanceled::DoneWhileRunning => false,
         }
@@ -244,15 +251,15 @@ where
             TransitionToRunning::Done => {
                 // means we are the only one who could be now running this future
                 self.poll_core(cx, safety_checker)
-            }
+            },
             TransitionToRunning::Aborted => {
                 // if we were aborted before, it means someone else cleared up everything and we are simply done here
                 TaskPollResult::Done
-            }
+            },
             TransitionToRunning::AlreadyRunning => {
                 // This can happen if are waken into safety but were scheduled also into normal run (ie task with 3 spawns, where one finished and other timed out)
                 TaskPollResult::Done
-            }
+            },
         }
     }
 
@@ -303,26 +310,29 @@ where
             // Finish when future was done, but not under opened writable cell that can cause bugs if someone reorder some instructions, here we are sure
             let status = self.header.state.transition_to_completed();
             match status {
-                TransitionToCompleted::Done => {}
+                TransitionToCompleted::Done => {},
                 TransitionToCompleted::HadConnectedJoinHandle => {
-                    self.handle_waker.with_mut(|ptr: *mut Option<Waker>| match unsafe { (*ptr).take() } {
-                        Some(v) => {
-                            if is_safety_err && self.is_with_safety {
-                                unsafe {
-                                    create_safety_waker(v).wake();
+                    self.handle_waker
+                        .with_mut(|ptr: *mut Option<Waker>| match unsafe { (*ptr).take() } {
+                            Some(v) => {
+                                if is_safety_err && self.is_with_safety {
+                                    unsafe {
+                                        create_safety_waker(v).wake();
+                                    }
+                                } else {
+                                    v.wake();
                                 }
-                            } else {
-                                v.wake();
-                            }
-                        }
-                        None => not_recoverable_error!("We shall never be here if we have HadConnectedJoinHandle set!"),
-                    })
-                }
+                            },
+                            None => {
+                                not_recoverable_error!("We shall never be here if we have HadConnectedJoinHandle set!")
+                            },
+                        })
+                },
                 TransitionToCompleted::Aborted => {
                     // We are done, we can simply clear the stage and we don't need to notify via handle_waker as of now as no remote abort supported
                     // We also do not guarantee ordering on this, but state is correct so no one except us will access stage
                     self.clear_stage();
-                }
+                },
             }
 
             TaskPollResult::Done
@@ -377,13 +387,13 @@ where
             TransitionToNotified::Done => {
                 // We need to reschedule on our own
                 self.scheduler.respawn(task);
-            }
+            },
             TransitionToNotified::AlreadyNotified => {
                 // Do nothing as someone already did it
-            }
+            },
             TransitionToNotified::Running => {
                 // Do nothing was we will be rescheduled by poll itself, still notification was marked
-            }
+            },
         }
     }
 
@@ -392,13 +402,13 @@ where
             TransitionToSafetyNotified::Done => {
                 // We need to reschedule on our own
                 self.scheduler.respawn_into_safety(task);
-            }
+            },
             TransitionToSafetyNotified::AlreadyNotified => {
                 // Do nothing as someone already did i t
-            }
+            },
             TransitionToSafetyNotified::Running => {
                 // Do nothing was we will be rescheduled by poll itself, still notification was marked
-            }
+            },
         }
     }
 
@@ -794,7 +804,12 @@ mod tests {
         let sched = create_mock_scheduler();
         let worker_id = create_mock_worker_id(0, 1);
         let safety_task_parent = ArcInternal::new(AsyncTask::new(box_future(dummy()), &worker_id, sched.clone()));
-        let safety_task = ArcInternal::new(AsyncTask::new_safety(true, box_future(dummy_safety_ret(true)), &worker_id, sched.clone()));
+        let safety_task = ArcInternal::new(AsyncTask::new_safety(
+            true,
+            box_future(dummy_safety_ret(true)),
+            &worker_id,
+            sched.clone(),
+        ));
         let safety_task_ref = TaskRef::new(safety_task.clone());
 
         let waker = get_waker_from_task(&safety_task_parent);
@@ -1012,12 +1027,12 @@ mod tests {
                 TaskPollResult::Done => {
                     let val = scheduler.spawn_count();
                     assert!(val == 1 || val == 2); // Either the schedule happen before pool or after. Loom will explore all interleaving
-                }
+                },
                 TaskPollResult::Notified => {
                     let val = scheduler.spawn_count();
 
                     assert!(val == 0 || val == 1); // 0 - one threads calls when we are in running, 1 - one threads call before we running
-                }
+                },
             }
         });
     }

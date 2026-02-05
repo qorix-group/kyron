@@ -177,7 +177,11 @@ macro_rules! impl_io_source_proxy {
                 self.$inner.register(registry, id, interest)
             }
 
-            fn reregister(&mut self, id: $crate::mio::types::IoId, interest: $crate::mio::types::IoEventInterest) -> $crate::mio::types::Result<()> {
+            fn reregister(
+                &mut self,
+                id: $crate::mio::types::IoId,
+                interest: $crate::mio::types::IoEventInterest,
+            ) -> $crate::mio::types::Result<()> {
                 self.$inner.reregister(id, interest)
             }
 

@@ -107,18 +107,25 @@ impl Registrations {
         let mut data = self.data.lock().unwrap();
         let key = data.tracking.next_free_key().ok_or(CommonErrors::NoSpaceLeft)?;
 
-        Arc::get_mut(&mut item).unwrap().write(RegistrationInfo::new(key.value()));
+        Arc::get_mut(&mut item)
+            .unwrap()
+            .write(RegistrationInfo::new(key.value()));
         let item = unsafe { item.assume_init() };
 
         let key_ret = data.tracking.insert(item.clone()).ok_or(CommonErrors::NoSpaceLeft)?;
-        debug_assert!(key == key_ret, "SlotMap returned key should be the same as provided in next_free_key");
+        debug_assert!(
+            key == key_ret,
+            "SlotMap returned key should be the same as provided in next_free_key"
+        );
 
         Ok(item)
     }
 
     fn schedule_registration_for_disposal(&self, key: SlotMapKey) {
         let mut data = self.data.lock().unwrap();
-        data.waiting_release.push(key).expect("Failed to schedule registration for disposal"); // Vec cannot fail here as it has enough capacity
+        data.waiting_release
+            .push(key)
+            .expect("Failed to schedule registration for disposal"); // Vec cannot fail here as it has enough capacity
         self.pending_release_count.store(true, Ordering::Release);
     }
 
@@ -156,7 +163,11 @@ impl<T: IoSelector> IoDriverHandle<T> {
     }
 
     /// Adds given IO source into the driver so it will be polled for events.
-    pub(crate) fn add_io_source<Source>(&self, source: &mut Source, interest: IoEventInterest) -> Result<Arc<RegistrationInfo>, CommonErrors>
+    pub(crate) fn add_io_source<Source>(
+        &self,
+        source: &mut Source,
+        interest: IoEventInterest,
+    ) -> Result<Arc<RegistrationInfo>, CommonErrors>
     where
         Source: IoRegistryEntry<T> + core::fmt::Debug,
     {
@@ -217,7 +228,8 @@ impl<T: IoSelector> IoDriverHandle<T> {
         // Right now we are sure that there is somewhere a next call to driver.poll, this source will not be considered.
         // Still it could be this source was considered int the poll happened during or little before deregister call so
         // we need to make sure that we keep it until next poll happens and remove before to release our reference count
-        self.async_registration.schedule_registration_for_disposal(SlotMapKey::new(key.unwrap()));
+        self.async_registration
+            .schedule_registration_for_disposal(SlotMapKey::new(key.unwrap()));
     }
 }
 
@@ -261,7 +273,9 @@ impl IoDriver {
 
     /// Provides unparker that is able to unpark (wake up from poll) this IO driver from other threads.
     pub(crate) fn get_unparker(&self) -> IoDriverUnparker {
-        IoDriverUnparker { waker: self.waker.clone() }
+        IoDriverUnparker {
+            waker: self.waker.clone(),
+        }
     }
 
     /// Provides handle that is able to register and deregister IO sources in this driver.
@@ -285,11 +299,11 @@ impl IoDriver {
         match binding.pool.poll(&mut binding.events, timeout) {
             Err(CommonErrors::Timeout) => {
                 return Err(CommonErrors::Timeout);
-            }
-            Ok(_) => {}
+            },
+            Ok(_) => {},
             _ => {
                 panic!("Generic error not handled!!!");
-            }
+            },
         }
 
         for event in binding.events.iter() {

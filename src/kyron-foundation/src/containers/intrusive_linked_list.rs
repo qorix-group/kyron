@@ -189,7 +189,7 @@ impl<I: Item> List<I> {
                 } else {
                     false
                 }
-            }
+            },
             _ => {
                 // If this is not the last item, we need to remove it from the list.
                 let mut curr = self.head.as_ptr() as *const Link;
@@ -208,7 +208,7 @@ impl<I: Item> List<I> {
                 }
 
                 false
-            }
+            },
         }
     }
 
@@ -424,9 +424,18 @@ mod tests {
         }
 
         {
-            let item1 = TestItem { value: 1, link: Link::new() };
-            let item2 = TestItem { value: 2, link: Link::new() };
-            let item3 = TestItem { value: 3, link: Link::new() };
+            let item1 = TestItem {
+                value: 1,
+                link: Link::new(),
+            };
+            let item2 = TestItem {
+                value: 2,
+                link: Link::new(),
+            };
+            let item3 = TestItem {
+                value: 3,
+                link: Link::new(),
+            };
             let mut list: List<TestItem> = Default::default();
             unsafe {
                 list.push_back(&item1);
@@ -443,9 +452,18 @@ mod tests {
         }
 
         {
-            let item1 = TestItem { value: 2, link: Link::new() };
-            let item2 = TestItem { value: 2, link: Link::new() };
-            let item3 = TestItem { value: 4, link: Link::new() };
+            let item1 = TestItem {
+                value: 2,
+                link: Link::new(),
+            };
+            let item2 = TestItem {
+                value: 2,
+                link: Link::new(),
+            };
+            let item3 = TestItem {
+                value: 4,
+                link: Link::new(),
+            };
             let item4 = TestItem {
                 value: 16,
                 link: Link::new(),

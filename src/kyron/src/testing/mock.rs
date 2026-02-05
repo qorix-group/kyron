@@ -192,7 +192,9 @@ where
         MOCK_RUNTIME.with(|instance| {
             let mut instance = instance.borrow_mut();
 
-            let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+            let runtime = instance
+                .as_mut()
+                .expect("Runtime mock instance is not initialized. Did you call `init`?");
             let worker_id = create_mock_worker_id(0, 0);
             let task = Arc::new(AsyncTask::new(boxed, &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
@@ -215,7 +217,9 @@ where
         MOCK_RUNTIME.with(|instance| {
             let mut instance = instance.borrow_mut();
 
-            let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+            let runtime = instance
+                .as_mut()
+                .expect("Runtime mock instance is not initialized. Did you call `init`?");
             let worker_id = create_mock_worker_id(0, 0);
             let task = Arc::new(AsyncTask::new(reusable.into_pin(), &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
@@ -251,7 +255,9 @@ where
         MOCK_RUNTIME.with(|instance| {
             let mut instance = instance.borrow_mut();
 
-            let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+            let runtime = instance
+                .as_mut()
+                .expect("Runtime mock instance is not initialized. Did you call `init`?");
             let worker_id = create_mock_worker_id(0, 0);
             let task = Arc::new(AsyncTask::new(boxed, &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
@@ -274,7 +280,9 @@ where
         MOCK_RUNTIME.with(|instance| {
             let mut instance = instance.borrow_mut();
 
-            let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+            let runtime = instance
+                .as_mut()
+                .expect("Runtime mock instance is not initialized. Did you call `init`?");
             let worker_id = create_mock_worker_id(0, 0);
             let task = Arc::new(AsyncTask::new(reusable.into_pin(), &worker_id, runtime.sched.clone()));
             let task_ref = TaskRef::new(task);
@@ -321,7 +329,9 @@ pub mod safety {
             MOCK_RUNTIME.with(|instance| {
                 let mut instance = instance.borrow_mut();
 
-                let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+                let runtime = instance
+                    .as_mut()
+                    .expect("Runtime mock instance is not initialized. Did you call `init`?");
                 let worker_id = create_mock_worker_id(0, 0);
                 let task = Arc::new(AsyncTask::new_safety(true, boxed, &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
@@ -342,9 +352,16 @@ pub mod safety {
             MOCK_RUNTIME.with(|instance| {
                 let mut instance = instance.borrow_mut();
 
-                let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+                let runtime = instance
+                    .as_mut()
+                    .expect("Runtime mock instance is not initialized. Did you call `init`?");
                 let worker_id = create_mock_worker_id(0, 0);
-                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), &worker_id, runtime.sched.clone()));
+                let task = Arc::new(AsyncTask::new_safety(
+                    true,
+                    reusable.into_pin(),
+                    &worker_id,
+                    runtime.sched.clone(),
+                ));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)
@@ -363,7 +380,10 @@ pub mod safety {
         spawn_from_boxed_on_dedicated(boxed, worker_id)
     }
 
-    pub fn spawn_from_boxed_on_dedicated<T, E>(boxed: FutureBox<SafetyResult<T, E>>, _worker_id: UniqueWorkerId) -> JoinHandle<SafetyResult<T, E>>
+    pub fn spawn_from_boxed_on_dedicated<T, E>(
+        boxed: FutureBox<SafetyResult<T, E>>,
+        _worker_id: UniqueWorkerId,
+    ) -> JoinHandle<SafetyResult<T, E>>
     where
         T: Send + 'static,
         E: Send + 'static,
@@ -374,7 +394,9 @@ pub mod safety {
             MOCK_RUNTIME.with(|instance| {
                 let mut instance = instance.borrow_mut();
 
-                let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+                let runtime = instance
+                    .as_mut()
+                    .expect("Runtime mock instance is not initialized. Did you call `init`?");
                 let worker_id = create_mock_worker_id(0, 0);
                 let task = Arc::new(AsyncTask::new_safety(true, boxed, &worker_id, runtime.sched.clone()));
                 let task_ref = TaskRef::new(task);
@@ -398,9 +420,16 @@ pub mod safety {
             MOCK_RUNTIME.with(|instance| {
                 let mut instance = instance.borrow_mut();
 
-                let runtime = instance.as_mut().expect("Runtime mock instance is not initialized. Did you call `init`?");
+                let runtime = instance
+                    .as_mut()
+                    .expect("Runtime mock instance is not initialized. Did you call `init`?");
                 let worker_id = create_mock_worker_id(0, 0);
-                let task = Arc::new(AsyncTask::new_safety(true, reusable.into_pin(), &worker_id, runtime.sched.clone()));
+                let task = Arc::new(AsyncTask::new_safety(
+                    true,
+                    reusable.into_pin(),
+                    &worker_id,
+                    runtime.sched.clone(),
+                ));
                 let task_ref = TaskRef::new(task);
                 runtime.tasks.push_back(task_ref.clone());
                 JoinHandle::new(task_ref)

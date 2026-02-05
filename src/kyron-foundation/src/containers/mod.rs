@@ -23,5 +23,6 @@ pub mod vector_extension;
 use crate::prelude::*;
 pub use iceoryx2_bb_container::vector::*;
 
-pub type Vec<T> = iceoryx2_bb_container::vector::PolymorphicVec<'static, T, iceoryx2_bb_memory::heap_allocator::HeapAllocator>;
+pub type Vec<T> =
+    iceoryx2_bb_container::vector::PolymorphicVec<'static, T, iceoryx2_bb_memory::heap_allocator::HeapAllocator>;
 pub use iceoryx2_bb_container::vector::Vector;

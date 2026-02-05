@@ -24,7 +24,9 @@ use crate::io::driver::IoDriver;
 use crate::io::AsyncSelector;
 use crate::{
     scheduler::{
-        context::{ctx_get_handler, ctx_get_wakeup_time, ctx_get_worker_id, ctx_set_wakeup_time, ctx_unset_wakeup_time},
+        context::{
+            ctx_get_handler, ctx_get_wakeup_time, ctx_get_worker_id, ctx_set_wakeup_time, ctx_unset_wakeup_time,
+        },
         scheduler_mt::AsyncScheduler,
         workers::worker_types::{WorkerInteractor, *},
     },
@@ -130,13 +132,20 @@ impl Inner {
         self.park_with_timeout(scheduler, worker, &expire_time_instant, expire_time_u64);
     }
 
-    fn park_with_timeout(&self, scheduler: &AsyncScheduler, worker: &WorkerInteractor, expire_time_instant: &Instant, expire_time_u64: u64) {
+    fn park_with_timeout(
+        &self,
+        scheduler: &AsyncScheduler,
+        worker: &WorkerInteractor,
+        expire_time_instant: &Instant,
+        expire_time_u64: u64,
+    ) {
         let res = worker.park(
             scheduler,
             &self.io,
             || {
                 // We sleep to new timeout
-                self.next_promised_wakeup.store(expire_time_u64, ::core::sync::atomic::Ordering::Relaxed);
+                self.next_promised_wakeup
+                    .store(expire_time_u64, ::core::sync::atomic::Ordering::Relaxed);
                 self.stash_promised_wakeup_time_for_worker(expire_time_u64);
             },
             Some(self.time.duration_since_now(expire_time_instant)),

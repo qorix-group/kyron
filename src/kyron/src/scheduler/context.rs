@@ -81,17 +81,25 @@ impl Handler {
     where
         T: Send + 'static,
     {
-        self.reusable_safety_internal(reusable, |reusable, id, scheduler| Arc::new(AsyncTask::new(reusable, id, scheduler)))
+        self.reusable_safety_internal(reusable, |reusable, id, scheduler| {
+            Arc::new(AsyncTask::new(reusable, id, scheduler))
+        })
     }
 
     pub(crate) fn spawn_on_dedicated<T>(&self, boxed: FutureBox<T>, worker_id: UniqueWorkerId) -> JoinHandle<T>
     where
         T: Send + 'static,
     {
-        self.on_dedicated_internal(boxed, worker_id, |f, id, scheduler| Arc::new(AsyncTask::new(f, id, scheduler)))
+        self.on_dedicated_internal(boxed, worker_id, |f, id, scheduler| {
+            Arc::new(AsyncTask::new(f, id, scheduler))
+        })
     }
 
-    pub(crate) fn spawn_reusable_on_dedicated<T>(&self, reusable: ReusableBoxFuture<T>, worker_id: UniqueWorkerId) -> JoinHandle<T>
+    pub(crate) fn spawn_reusable_on_dedicated<T>(
+        &self,
+        reusable: ReusableBoxFuture<T>,
+        worker_id: UniqueWorkerId,
+    ) -> JoinHandle<T>
     where
         T: Send + 'static,
     {
@@ -110,7 +118,10 @@ impl Handler {
         })
     }
 
-    pub(crate) fn spawn_reusable_safety<T, E>(&self, reusable: ReusableBoxFuture<SafetyResult<T, E>>) -> JoinHandle<SafetyResult<T, E>>
+    pub(crate) fn spawn_reusable_safety<T, E>(
+        &self,
+        reusable: ReusableBoxFuture<SafetyResult<T, E>>,
+    ) -> JoinHandle<SafetyResult<T, E>>
     where
         T: Send + 'static,
         E: Send + 'static,
@@ -155,17 +166,21 @@ impl Handler {
         match self.inner {
             HandlerImpl::Async(ref async_inner) => {
                 a(Some(&async_inner.prod_con));
-            }
+            },
             HandlerImpl::Dedicated(_) => {
                 a(None);
-            }
+            },
         }
     }
 
     fn internal<T>(
         &self,
         boxed: FutureBox<T>,
-        c: impl Fn(FutureBox<T>, &WorkerId, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, Arc<AsyncScheduler>>>,
+        c: impl Fn(
+            FutureBox<T>,
+            &WorkerId,
+            Arc<AsyncScheduler>,
+        ) -> Arc<AsyncTask<T, BoxCustom<dyn Future<Output = T> + Send>, Arc<AsyncScheduler>>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -181,15 +196,17 @@ impl Handler {
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
-                async_inner.scheduler.spawn_from_runtime(task_ref, &async_inner.prod_con);
-            }
+                async_inner
+                    .scheduler
+                    .spawn_from_runtime(task_ref, &async_inner.prod_con);
+            },
             HandlerImpl::Dedicated(ref dedicated_inner) => {
                 let task = c(boxed, &worker_id, dedicated_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
                 dedicated_inner.scheduler.spawn_outside_runtime(task_ref);
-            }
+            },
         }
 
         handle
@@ -198,7 +215,11 @@ impl Handler {
     fn reusable_safety_internal<T>(
         &self,
         reusable: ReusableBoxFuture<T>,
-        c: impl Fn(Pin<ReusableBoxFuture<T>>, &WorkerId, Arc<AsyncScheduler>) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, Arc<AsyncScheduler>>>,
+        c: impl Fn(
+            Pin<ReusableBoxFuture<T>>,
+            &WorkerId,
+            Arc<AsyncScheduler>,
+        ) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, Arc<AsyncScheduler>>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -214,15 +235,17 @@ impl Handler {
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
-                async_inner.scheduler.spawn_from_runtime(task_ref, &async_inner.prod_con);
-            }
+                async_inner
+                    .scheduler
+                    .spawn_from_runtime(task_ref, &async_inner.prod_con);
+            },
             HandlerImpl::Dedicated(ref dedicated_inner) => {
                 let task = c(reusable.into_pin(), &worker_id, dedicated_inner.scheduler.clone());
                 task_ref = TaskRef::new(task.clone());
                 handle = JoinHandle::new(task_ref.clone());
 
                 dedicated_inner.scheduler.spawn_outside_runtime(task_ref);
-            }
+            },
         }
 
         handle
@@ -246,7 +269,11 @@ impl Handler {
             HandlerImpl::Dedicated(ref dedicated_inner) => &dedicated_inner.dedicated_scheduler,
         };
 
-        let task = c(boxed, &ctx_get_worker_id(), DedicatedSchedulerLocal::new(worker_id, scheduler.clone()));
+        let task = c(
+            boxed,
+            &ctx_get_worker_id(),
+            DedicatedSchedulerLocal::new(worker_id, scheduler.clone()),
+        );
 
         let task_ref = TaskRef::new(task.clone());
         let handle = JoinHandle::new(task_ref.clone());
@@ -261,7 +288,11 @@ impl Handler {
         &self,
         reusable: ReusableBoxFuture<T>,
         worker_id: UniqueWorkerId,
-        c: impl Fn(Pin<ReusableBoxFuture<T>>, &WorkerId, DedicatedSchedulerLocal) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, DedicatedSchedulerLocal>>,
+        c: impl Fn(
+            Pin<ReusableBoxFuture<T>>,
+            &WorkerId,
+            DedicatedSchedulerLocal,
+        ) -> Arc<AsyncTask<T, ReusableBoxFuture<T>, DedicatedSchedulerLocal>>,
     ) -> JoinHandle<T>
     where
         T: Send + 'static,
@@ -291,10 +322,10 @@ impl Handler {
         match self.inner {
             HandlerImpl::Async(_) => {
                 not_recoverable_error!("Unpark called on async handler, this is not allowed! This should be called only on dedicated handlers!");
-            }
+            },
             HandlerImpl::Dedicated(ref sched) => {
                 sched.scheduler.try_notify_siblings_workers(None);
-            }
+            },
         }
     }
 }
@@ -378,7 +409,11 @@ impl ContextBuilder {
         self
     }
 
-    pub(super) fn with_dedicated_handle(mut self, s: Arc<AsyncScheduler>, dedicated_scheduler: Arc<DedicatedScheduler>) -> Self {
+    pub(super) fn with_dedicated_handle(
+        mut self,
+        s: Arc<AsyncScheduler>,
+        dedicated_scheduler: Arc<DedicatedScheduler>,
+    ) -> Self {
         assert!(self.handle.is_none(), "Cannot set two handlers for single context");
 
         let handle = Handler {
@@ -396,7 +431,9 @@ impl ContextBuilder {
         WorkerContext {
             running_task: RefCell::new(None),
             worker_id: Cell::new(self.worker_id.expect("Worker type must be set in context builder!")),
-            handler: RefCell::new(Some(Rc::new(self.handle.expect("Handler type must be set in context builder!")))),
+            handler: RefCell::new(Some(Rc::new(
+                self.handle.expect("Handler type must be set in context builder!"),
+            ))),
             is_safety_enabled: self.is_with_safety,
             wakeup_time: Cell::new(None),
             drivers: Some(self.drivers),
@@ -447,13 +484,24 @@ pub(crate) fn ctx_get_worker_id() -> WorkerId {
 /// Check if safety was enabled
 ///
 pub(crate) fn ctx_is_with_safety() -> bool {
-    CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").is_safety_enabled)
-        .unwrap_or_default()
+    CTX.try_with(|ctx| {
+        ctx.borrow()
+            .as_ref()
+            .expect("Called before CTX init?")
+            .is_safety_enabled
+    })
+    .unwrap_or_default()
 }
 
 pub(crate) fn ctx_set_wakeup_time(time: u64) {
-    CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").wakeup_time.set(Some(time)))
-        .unwrap_or_default();
+    CTX.try_with(|ctx| {
+        ctx.borrow()
+            .as_ref()
+            .expect("Called before CTX init?")
+            .wakeup_time
+            .set(Some(time))
+    })
+    .unwrap_or_default();
 }
 
 ///
@@ -472,13 +520,26 @@ pub(crate) fn ctx_get_wakeup_time() -> u64 {
 }
 
 pub(crate) fn ctx_unset_wakeup_time() {
-    CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").wakeup_time.take())
-        .unwrap_or_default();
+    CTX.try_with(|ctx| {
+        ctx.borrow()
+            .as_ref()
+            .expect("Called before CTX init?")
+            .wakeup_time
+            .take()
+    })
+    .unwrap_or_default();
 }
 
 pub(crate) fn ctx_get_drivers() -> Drivers {
-    CTX.try_with(|ctx| ctx.borrow().as_ref().expect("Called before CTX init?").drivers.clone().unwrap())
-        .unwrap()
+    CTX.try_with(|ctx| {
+        ctx.borrow()
+            .as_ref()
+            .expect("Called before CTX init?")
+            .drivers
+            .clone()
+            .unwrap()
+    })
+    .unwrap()
 }
 
 ///
@@ -487,7 +548,11 @@ pub(crate) fn ctx_get_drivers() -> Drivers {
 pub(super) fn ctx_set_running_task(task: TaskRef) {
     let _ = CTX
         .try_with(|ctx| {
-            ctx.borrow().as_ref().expect("Called before CTX init?").running_task.replace(Some(task));
+            ctx.borrow()
+                .as_ref()
+                .expect("Called before CTX init?")
+                .running_task
+                .replace(Some(task));
         })
         .map_err(|e| {
             panic!("Something is really bad here, error {}!", e);
@@ -500,7 +565,11 @@ pub(super) fn ctx_set_running_task(task: TaskRef) {
 pub(super) fn ctx_unset_running_task() {
     let _ = CTX
         .try_with(|ctx| {
-            ctx.borrow().as_ref().expect("Called before CTX init?").running_task.replace(None);
+            ctx.borrow()
+                .as_ref()
+                .expect("Called before CTX init?")
+                .running_task
+                .replace(None);
         })
         .map_err(|_| {});
 }

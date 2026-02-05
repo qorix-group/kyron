@@ -26,10 +26,14 @@ pub struct TestingFuturePoller<OutType> {
 
 impl<OutType> TestingFuturePoller<OutType> {
     pub fn new(future: impl Future<Output = OutType> + 'static + Send) -> TestingFuturePoller<OutType> {
-        Self { future: Box::pin(future) }
+        Self {
+            future: Box::pin(future),
+        }
     }
 
-    pub fn from_boxed(boxed_future: Pin<Box<dyn Future<Output = OutType> + 'static + Send>>) -> TestingFuturePoller<OutType> {
+    pub fn from_boxed(
+        boxed_future: Pin<Box<dyn Future<Output = OutType> + 'static + Send>>,
+    ) -> TestingFuturePoller<OutType> {
         Self { future: boxed_future }
     }
 

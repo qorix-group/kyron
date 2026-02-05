@@ -13,14 +13,16 @@
 
 use crate::mio::{
     registry::Registry,
-    types::{IoCall, IoEvent, IoEventInterest, IoId, IoRegistryEntry, IoResult, IoSelector, IoSelectorEventContainer, Result},
+    types::{
+        IoCall, IoEvent, IoEventInterest, IoId, IoRegistryEntry, IoResult, IoSelector, IoSelectorEventContainer, Result,
+    },
 };
 use core::time::Duration;
 use iceoryx2_bb_container::flatmap::FlatMap;
 use kyron_foundation::{containers::vector_extension::VectorExtension, not_recoverable_error, prelude::*};
 use libc::{
-    close, fcntl, pipe, poll, pollfd, read, write, EAGAIN, EINTR, FD_CLOEXEC, F_SETFD, F_SETFL, O_CLOEXEC, O_NONBLOCK, POLLERR, POLLHUP, POLLIN,
-    POLLOUT, POLLPRI,
+    close, fcntl, pipe, poll, pollfd, read, write, EAGAIN, EINTR, FD_CLOEXEC, F_SETFD, F_SETFL, O_CLOEXEC, O_NONBLOCK,
+    POLLERR, POLLHUP, POLLIN, POLLOUT, POLLPRI,
 };
 use std::{
     ffi,
@@ -43,8 +45,13 @@ impl Selector {
     pub fn new(fd_capacity: usize) -> Self {
         let mut fds = Fds::new(1 + fd_capacity);
         let poll_waker = InternalWaker::new().expect("Failed to create the internal InternalWaker");
-        fds.add(poll_waker.read_fd, IoId::new(u64::default()), IoEventInterest::READABLE, true)
-            .expect("Failed to add the InternalWaker");
+        fds.add(
+            poll_waker.read_fd,
+            IoId::new(u64::default()),
+            IoEventInterest::READABLE,
+            true,
+        )
+        .expect("Failed to add the InternalWaker");
 
         Selector {
             inner: Arc::new(Inner {
@@ -208,7 +215,9 @@ impl SelectWaker {
 
 impl Drop for SelectWaker {
     fn drop(&mut self) {
-        self.1.deregister(self.0.read_fd).expect("Failed to deregister SelectWaker");
+        self.1
+            .deregister(self.0.read_fd)
+            .expect("Failed to deregister SelectWaker");
     }
 }
 
@@ -268,7 +277,7 @@ impl InternalWaker {
             match res {
                 0 => {
                     not_recoverable_error!("There shall be no write with 0 bytes written, some error happened");
-                }
+                },
                 -1 => {
                     let err = std::io::Error::last_os_error().raw_os_error().unwrap();
                     match err {
@@ -278,7 +287,7 @@ impl InternalWaker {
                         EINTR => (), // Retry.
                         _ => not_recoverable_error!(with err, "InternalWaker write failed"),
                     }
-                }
+                },
                 _ => break, // Successfully wrote some data.
             }
         }
@@ -298,7 +307,7 @@ impl InternalWaker {
                     e => {
                         warn!("InternalWaker read failed with error {}", e);
                         break;
-                    }
+                    },
                 }
             } else {
                 // All data has been read.
@@ -354,8 +363,12 @@ impl Fds {
         }
 
         // None of these can fail. Capacity was verified above.
-        self.fd_to_index.insert(fd, self.infos.len()).expect("Failed to add file descriptor");
-        self.infos.push(FdInfo { id, is_waker }).expect("Failed to add file descriptor info");
+        self.fd_to_index
+            .insert(fd, self.infos.len())
+            .expect("Failed to add file descriptor");
+        self.infos
+            .push(FdInfo { id, is_waker })
+            .expect("Failed to add file descriptor info");
         self.pollfds
             .push(pollfd {
                 fd,
@@ -483,7 +496,11 @@ impl Inner {
         }
     }
 
-    fn select<Container: IoSelectorEventContainer>(&self, events: &mut Container, timeout: Option<Duration>) -> Result<()> {
+    fn select<Container: IoSelectorEventContainer>(
+        &self,
+        events: &mut Container,
+        timeout: Option<Duration>,
+    ) -> Result<()> {
         let timeout = timeout.map(|d| d.as_millis() as i32).unwrap_or(-1);
         let mut fds = self.fds.lock().unwrap();
 
@@ -493,16 +510,24 @@ impl Inner {
                 fds = self.accesses_finished.wait(fds).unwrap();
             }
 
-            let poll_result: i32 = unsafe { poll(fds.pollfds.as_mut_slice().as_mut_ptr(), fds.pollfds.len() as libc::nfds_t, timeout) };
+            let poll_result: i32 = unsafe {
+                poll(
+                    fds.pollfds.as_mut_slice().as_mut_ptr(),
+                    fds.pollfds.len() as libc::nfds_t,
+                    timeout,
+                )
+            };
 
             match poll_result {
                 -1 => {
                     let err = std::io::Error::last_os_error().raw_os_error().unwrap();
                     match err {
                         libc::EINTR => continue,
-                        _ => not_recoverable_error!(with  err, "Poll failed with error: This is a bug in implementation!"),
+                        _ => {
+                            not_recoverable_error!(with  err, "Poll failed with error: This is a bug in implementation!")
+                        },
                     }
-                }
+                },
                 0 => break Err(CommonErrors::Timeout),
                 _ => {
                     // If there's an event only for the internal poll waker,
@@ -561,7 +586,7 @@ impl Inner {
                     }
 
                     return Ok(());
-                }
+                },
             }
         }
     }
@@ -711,7 +736,10 @@ mod tests {
 
         // When changing this, look into select implementation as it assumes the internal waker is at index 0.
         assert_eq!(selector.inner.fds.lock().unwrap().pollfds.len(), 1);
-        assert_eq!(selector.inner.poll_waker.read_fd, selector.inner.fds.lock().unwrap().pollfds[0].fd);
+        assert_eq!(
+            selector.inner.poll_waker.read_fd,
+            selector.inner.fds.lock().unwrap().pollfds[0].fd
+        );
     }
 
     #[test]
@@ -719,7 +747,9 @@ mod tests {
         let (read_fd, write_fd) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
 
         let (begin_sync, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -731,10 +761,16 @@ mod tests {
 
         // Make the pipe readable.
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(id));
         assert!(events[0].is_readable());
         assert!(!events[0].is_writable());
@@ -745,7 +781,9 @@ mod tests {
         let (read_fd, write_fd) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+        selector
+            .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+            .unwrap();
 
         // Make the pipe not writable.
         write_until_blocking(write_fd);
@@ -762,7 +800,10 @@ mod tests {
         read_until_blocking(read_fd);
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(id));
         assert!(events[0].is_writable());
         assert!(!events[0].is_readable());
@@ -776,21 +817,35 @@ mod tests {
         let selector_clone = selector.clone();
 
         // Make the pipe readable.
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         // Emulate cross thread API call so waker is also woken up but since there is also other event, it will not be put into
         // wait state again but will process all fds
         assert_eq!(
-            unsafe { write(selector.inner.poll_waker.write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            unsafe {
+                write(
+                    selector.inner.poll_waker.write_fd,
+                    &data as *const u8 as *const ffi::c_void,
+                    1_usize,
+                )
+            },
             1_isize
         );
 
         let mut events = Vec::<IoEvent>::new_in_global(8);
         assert!(selector_clone.select(&mut events, None).is_ok());
 
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
     }
 
     #[test]
@@ -809,14 +864,22 @@ mod tests {
         begin_sync.wait(Duration::MAX);
         // Wait for the thread to block on poll. Obviously this isn't guaranteed to work, but I have no better idea.
         thread::sleep(Duration::from_secs(2));
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
 
         // Make the pipe readable.
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(id));
         assert!(events[0].is_readable());
         assert!(!events[0].is_writable());
@@ -841,13 +904,18 @@ mod tests {
         begin_sync.wait(Duration::MAX);
         // Wait for the thread to block on poll. Obviously this isn't guaranteed to work, but I have no better idea.
         thread::sleep(Duration::from_secs(2));
-        selector.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+        selector
+            .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+            .unwrap();
 
         // Make the pipe writable.
         read_until_blocking(read_fd);
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(id));
         assert!(events[0].is_writable());
         assert!(!events[0].is_readable());
@@ -858,12 +926,17 @@ mod tests {
         let (read_fd, write_fd) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
         selector.deregister(read_fd).unwrap();
 
         let (begin_sync, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
-            assert_eq!(selector.select(&mut events, Some(Duration::from_secs(2))), Err(CommonErrors::Timeout));
+            assert_eq!(
+                selector.select(&mut events, Some(Duration::from_secs(2))),
+                Err(CommonErrors::Timeout)
+            );
             events
         });
 
@@ -871,10 +944,16 @@ mod tests {
 
         // Make the pipe readable.
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -882,7 +961,9 @@ mod tests {
         let (read_fd, write_fd) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+        selector
+            .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+            .unwrap();
         selector.deregister(write_fd).unwrap();
 
         // Make the pipe not writable.
@@ -890,7 +971,10 @@ mod tests {
 
         let (begin_sync, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
-            assert_eq!(selector.select(&mut events, Some(Duration::from_secs(2))), Err(CommonErrors::Timeout));
+            assert_eq!(
+                selector.select(&mut events, Some(Duration::from_secs(2))),
+                Err(CommonErrors::Timeout)
+            );
             events
         });
 
@@ -900,7 +984,10 @@ mod tests {
         read_until_blocking(read_fd);
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -909,7 +996,9 @@ mod tests {
         let id = 1;
         let selector = Selector::new(8);
         let selector_clone = selector.clone();
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
 
         let (begin_sync, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -929,10 +1018,16 @@ mod tests {
 
         // Make the pipe readable.
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -941,7 +1036,9 @@ mod tests {
         let id = 1;
         let selector = Selector::new(8);
         let selector_clone = selector.clone();
-        selector.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+        selector
+            .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+            .unwrap();
 
         // Make the pipe not writable.
         write_until_blocking(write_fd);
@@ -966,7 +1063,10 @@ mod tests {
         read_until_blocking(read_fd);
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -977,12 +1077,17 @@ mod tests {
 
         // Make the pipe readable.
         let data = 1_u8;
-        assert_eq!(unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) }, 1_isize);
+        assert_eq!(
+            unsafe { write(write_fd, &data as *const u8 as *const ffi::c_void, 1_usize) },
+            1_isize
+        );
 
         // Register for readable events. This select should succeed.
         {
             let selector_clone = selector.clone();
-            selector_clone.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+            selector_clone
+                .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+                .unwrap();
 
             let (_, _, join_handle) = create_thread(move || {
                 let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -991,7 +1096,10 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                1
+            );
             assert_eq!(events[0].id(), IoId::new(id));
             assert!(events[0].is_readable());
             assert!(!events[0].is_writable());
@@ -1011,13 +1119,18 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                0
+            );
         }
 
         // Re-register for readable events. This select should succeed.
         {
             let selector_clone = selector.clone();
-            selector_clone.reregister(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+            selector_clone
+                .reregister(read_fd, IoId::new(id), IoEventInterest::READABLE)
+                .unwrap();
 
             let (_, _, join_handle) = create_thread(move || {
                 let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -1026,7 +1139,10 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                1
+            );
             assert_eq!(events[0].id(), IoId::new(id));
             assert!(events[0].is_readable());
             assert!(!events[0].is_writable());
@@ -1042,7 +1158,9 @@ mod tests {
         // Register for writable events. This select should succeed.
         {
             let selector_clone = selector.clone();
-            selector_clone.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+            selector_clone
+                .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+                .unwrap();
 
             let (_, _, join_handle) = create_thread(move || {
                 let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -1051,7 +1169,10 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                1
+            );
             assert_eq!(events[0].id(), IoId::new(id));
             assert!(events[0].is_writable());
             assert!(!events[0].is_readable());
@@ -1071,13 +1192,18 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                0
+            );
         }
 
         // Re-register for writable events. This select should succeed.
         {
             let selector_clone = selector.clone();
-            selector_clone.reregister(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+            selector_clone
+                .reregister(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+                .unwrap();
 
             let (_, _, join_handle) = create_thread(move || {
                 let mut events = Vec::<IoEvent>::new_in_global(8);
@@ -1086,7 +1212,10 @@ mod tests {
             });
 
             let events = join_handle.join().unwrap();
-            assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+            assert_eq!(
+                <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+                1
+            );
             assert_eq!(events[0].id(), IoId::new(id));
             assert!(events[0].is_writable());
             assert!(!events[0].is_readable());
@@ -1098,16 +1227,24 @@ mod tests {
         let (read_fd, _) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
 
         let (_, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
-            assert_eq!(selector.select(&mut events, Some(Duration::from_secs(2))), Err(CommonErrors::Timeout));
+            assert_eq!(
+                selector.select(&mut events, Some(Duration::from_secs(2))),
+                Err(CommonErrors::Timeout)
+            );
             events
         });
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -1115,18 +1252,26 @@ mod tests {
         let (_, write_fd) = create_pipe();
         let id = 1;
         let selector = Selector::new(8);
-        selector.register(write_fd, IoId::new(id), IoEventInterest::WRITABLE).unwrap();
+        selector
+            .register(write_fd, IoId::new(id), IoEventInterest::WRITABLE)
+            .unwrap();
 
         write_until_blocking(write_fd);
 
         let (_, _, join_handle) = create_thread(move || {
             let mut events = Vec::<IoEvent>::new_in_global(8);
-            assert_eq!(selector.select(&mut events, Some(Duration::from_secs(2))), Err(CommonErrors::Timeout));
+            assert_eq!(
+                selector.select(&mut events, Some(Duration::from_secs(2))),
+                Err(CommonErrors::Timeout)
+            );
             events
         });
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 0);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            0
+        );
     }
 
     #[test]
@@ -1135,7 +1280,9 @@ mod tests {
         let id = 1;
         let waker_id = 2;
         let selector = Selector::new(8);
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
         let waker = selector.create_waker(IoId::new(waker_id)).unwrap();
 
         let (begin_sync, _, join_handle) = create_thread(move || {
@@ -1151,7 +1298,10 @@ mod tests {
         waker.wake();
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(waker_id));
     }
 
@@ -1161,7 +1311,9 @@ mod tests {
         let id = 1;
         let waker_id = 2;
         let selector = Selector::new(8);
-        selector.register(read_fd, IoId::new(id), IoEventInterest::READABLE).unwrap();
+        selector
+            .register(read_fd, IoId::new(id), IoEventInterest::READABLE)
+            .unwrap();
         let selector_clone = selector.clone();
 
         let (begin_sync, _, join_handle) = create_thread(move || {
@@ -1178,7 +1330,10 @@ mod tests {
         waker.wake();
 
         let events = join_handle.join().unwrap();
-        assert_eq!(<kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events), 1);
+        assert_eq!(
+            <kyron_foundation::containers::Vec<_> as IoSelectorEventContainer>::len(&events),
+            1
+        );
         assert_eq!(events[0].id(), IoId::new(waker_id));
     }
 

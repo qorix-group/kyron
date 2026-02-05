@@ -46,7 +46,9 @@ impl<T: IoSelector> RawFdBridge<T> {
     ///    behavior that the author is probably not aware of.
     ///
     pub fn from(raw: RawFd) -> Result<Self> {
-        Ok(RawFdBridge { inner: T::IoProxy::new(raw) })
+        Ok(RawFdBridge {
+            inner: T::IoProxy::new(raw),
+        })
     }
 
     /// Consumes self and returns the underlying RawFd.

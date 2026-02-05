@@ -88,27 +88,27 @@ impl Parse for MacroArgs {
                 "task_queue_size" => {
                     let expr: Expr = input.parse()?;
                     args.task_queue_size = Some(expr);
-                }
+                },
                 "worker_threads" => {
                     let expr: Expr = input.parse()?;
                     args.worker_threads = Some(expr);
-                }
+                },
                 "worker_thread_parameters" => {
                     let tp: ThreadParams = parse_braced_thread_params(&input)?;
                     args.worker_thread_parameters = Some(tp);
-                }
+                },
                 "safety_worker" => {
                     let b: LitBool = input.parse()?;
                     args.safety_worker = Some(b.value());
-                }
+                },
                 "safety_worker_thread_parameters" => {
                     let tp: ThreadParams = parse_braced_thread_params(&input)?;
                     args.safety_worker_thread_parameters = Some(tp);
-                }
+                },
                 "safety_worker_task_queue_size" => {
                     let expr: Expr = input.parse()?;
                     args.safety_worker_task_queue_size = Some(expr);
-                }
+                },
                 "dedicated_workers" => {
                     let inner;
                     bracketed!(inner in input);
@@ -127,14 +127,17 @@ impl Parse for MacroArgs {
                                 "id" => {
                                     let s: LitStr = content.parse()?;
                                     id_opt = Some(s);
-                                }
+                                },
                                 "thread_parameters" => {
                                     let tp = parse_braced_thread_params(&&content)?;
                                     thread_params_opt = Some(tp);
-                                }
+                                },
                                 other => {
-                                    return Err(syn::Error::new_spanned(key2, format!("Unknown key in dedicated_worker: {}", other)));
-                                }
+                                    return Err(syn::Error::new_spanned(
+                                        key2,
+                                        format!("Unknown key in dedicated_worker: {}", other),
+                                    ));
+                                },
                             }
 
                             if content.peek(Token![,]) {
@@ -142,7 +145,8 @@ impl Parse for MacroArgs {
                             }
                         }
 
-                        let id = id_opt.ok_or_else(|| syn::Error::new_spanned(&key, "dedicated_worker missing required `id`"))?;
+                        let id = id_opt
+                            .ok_or_else(|| syn::Error::new_spanned(&key, "dedicated_worker missing required `id`"))?;
 
                         args.dedicated_workers.push(DedicatedWorker {
                             id,
@@ -153,10 +157,13 @@ impl Parse for MacroArgs {
                             let _c: Token![,] = inner.parse()?;
                         }
                     }
-                }
+                },
                 other => {
-                    return Err(syn::Error::new_spanned(key, format!("Unknown attribute key: {}", other)));
-                }
+                    return Err(syn::Error::new_spanned(
+                        key,
+                        format!("Unknown attribute key: {}", other),
+                    ));
+                },
             }
 
             // consume optional trailing comma
@@ -184,11 +191,11 @@ fn parse_braced_thread_params(input: &ParseStream) -> Result<ThreadParams> {
             "priority" => {
                 let v: Expr = content.parse()?;
                 tp.priority = Some(v);
-            }
+            },
             "scheduler_type" => {
                 let s: LitStr = content.parse()?;
                 tp.scheduler_type = Some(s);
-            }
+            },
             "affinity" => {
                 // parse bracketed list [0,1]
                 let inner;
@@ -202,14 +209,17 @@ fn parse_braced_thread_params(input: &ParseStream) -> Result<ThreadParams> {
                     }
                 }
                 tp.affinity = Some(vals);
-            }
+            },
             "stack_size" => {
                 let v: Expr = content.parse()?;
                 tp.stack_size = Some(v);
-            }
+            },
             other => {
-                return Err(syn::Error::new_spanned(key, format!("Unknown key in thread parameters: {}", other)));
-            }
+                return Err(syn::Error::new_spanned(
+                    key,
+                    format!("Unknown key in thread parameters: {}", other),
+                ));
+            },
         }
 
         if content.peek(Token![,]) {
@@ -324,7 +334,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                 eprintln!("*** Warning: Either priority or scheduler type is not configured for async worker, both attributes will be inherited from parent thread.");
             }
             thread_parameters_to_tokens(&tp, true)
-        }
+        },
         None => quote! { /* no worker params */ },
     };
 
@@ -340,7 +350,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                         .into();
                 }
                 quote! { #e }
-            }
+            },
             None => quote! { 64 }, // default
         };
         match args.safety_worker_thread_parameters {
@@ -356,7 +366,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                     )
                     .safety_worker_task_queue_size(#safety_worker_task_queue_size_ts)
                 }
-            }
+            },
             None => quote! {
                 .enable_safety_worker(ThreadParameters::default())
                 .safety_worker_task_queue_size(#safety_worker_task_queue_size_ts)
@@ -414,7 +424,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .into();
             }
             quote! { #e }
-        }
+        },
         None => quote! { 256 }, // default
     };
 
@@ -427,7 +437,7 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .into();
             }
             quote! { #e }
-        }
+        },
         None => quote! { 2 }, // default
     };
 
@@ -485,8 +495,9 @@ fn thread_parameters_to_tokens(tp: &ThreadParams, is_async_worker: bool) -> proc
             "RoundRobin" => quote! { kyron::scheduler::SchedulerType::RoundRobin },
             "Other" => quote! { kyron::scheduler::SchedulerType::Other },
             other => {
-                return syn::Error::new_spanned(scheduler_type, format!("Invalid scheduler_type: {}", other)).to_compile_error();
-            }
+                return syn::Error::new_spanned(scheduler_type, format!("Invalid scheduler_type: {}", other))
+                    .to_compile_error();
+            },
         };
         if is_async_worker {
             quote! { .thread_scheduler(#st) }

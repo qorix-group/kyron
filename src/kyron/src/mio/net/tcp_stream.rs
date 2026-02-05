@@ -41,7 +41,9 @@ impl<T: IoSelector> TcpStreamBridge<T> {
     pub(crate) fn new(s: std::net::TcpStream) -> IoResult<Self> {
         s.set_nonblocking(true)?;
 
-        Ok(TcpStreamBridge { inner: T::IoProxy::new(s) })
+        Ok(TcpStreamBridge {
+            inner: T::IoProxy::new(s),
+        })
     }
 
     pub(crate) fn connect(addr: SocketAddr) -> IoResult<Self> {

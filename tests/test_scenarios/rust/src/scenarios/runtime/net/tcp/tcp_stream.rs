@@ -21,14 +21,20 @@ use tracing::info;
 
 fn parse_message(input: &str) -> String {
     let input_content: Value = serde_json::from_str(input).expect("Failed to parse input string");
-    input_content["message"].as_str().expect("Failed to parse \"message\" field").to_string()
+    input_content["message"]
+        .as_str()
+        .expect("Failed to parse \"message\" field")
+        .to_string()
 }
 
 async fn write_and_read_task(mut stream: TcpStream, message: String) {
     // Addresses.
     let peer_addr = stream.peer_addr().expect("Failed to get peer address");
     let local_addr = stream.local_addr().expect("Failed to get local address");
-    info!(peer_addr = format!("{peer_addr:?}"), local_addr = format!("{local_addr:?}"));
+    info!(
+        peer_addr = format!("{peer_addr:?}"),
+        local_addr = format!("{local_addr:?}")
+    );
 
     // Write.
     {
@@ -40,14 +46,14 @@ async fn write_and_read_task(mut stream: TcpStream, message: String) {
             Ok(0) => {
                 info!("Client closed connection during write");
                 return;
-            }
+            },
             Ok(n) => {
                 info!("Written {n} bytes");
-            }
+            },
             Err(e) => {
                 info!("Write error: {e:?}");
                 return;
-            }
+            },
         }
     }
 
@@ -57,13 +63,13 @@ async fn write_and_read_task(mut stream: TcpStream, message: String) {
         match stream.read(&mut read_buf).await {
             Ok(0) => {
                 info!("Client closed connection");
-            }
+            },
             Ok(n) => {
                 info!("Read {n} bytes");
-            }
+            },
             Err(e) => {
                 info!("Read error: {e:?}");
-            }
+            },
         };
 
         let message_read = String::from_utf8(read_buf.to_vec()).expect("Failed to convert string from bytes");
@@ -81,7 +87,8 @@ impl Scenario for Smoke {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         let message = parse_message(input);
         rt.block_on(async move {
@@ -107,7 +114,8 @@ impl Scenario for SetGetTtl {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             let stream = create_tcp_stream(connection_parameters).await;
@@ -119,5 +127,9 @@ impl Scenario for SetGetTtl {
 }
 
 pub fn tcp_stream_group() -> Box<dyn ScenarioGroup> {
-    Box::new(ScenarioGroupImpl::new("tcp_stream", vec![Box::new(Smoke), Box::new(SetGetTtl)], vec![]))
+    Box::new(ScenarioGroupImpl::new(
+        "tcp_stream",
+        vec![Box::new(Smoke), Box::new(SetGetTtl)],
+        vec![],
+    ))
 }

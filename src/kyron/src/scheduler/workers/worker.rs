@@ -15,7 +15,9 @@ use ::core::task::Context;
 use core::time::Duration;
 use std::{rc::Rc, sync::Arc};
 
-use crate::scheduler::{context::ctx_get_drivers, driver::Drivers, scheduler_mt::DedicatedScheduler, waker::create_waker, workers::Thread};
+use crate::scheduler::{
+    context::ctx_get_drivers, driver::Drivers, scheduler_mt::DedicatedScheduler, waker::create_waker, workers::Thread,
+};
 use kyron_foundation::base::fast_rand::FastRand;
 use kyron_foundation::containers::spmc_queue::BoundProducerConsumer;
 use kyron_foundation::prelude::*;
@@ -135,7 +137,9 @@ impl Worker {
 
     pub(crate) fn stop(&mut self) {
         if let Some(scheduler) = &self.scheduler {
-            scheduler.get_worker_access(self.id).request_stop(&scheduler.io_unparker);
+            scheduler
+                .get_worker_access(self.id)
+                .request_stop(&scheduler.io_unparker);
         }
     }
 }
@@ -150,7 +154,11 @@ impl WorkerInner {
     fn pre_run(&mut self, drivers: Drivers, dedicated_scheduler: Arc<DedicatedScheduler>, with_safety: bool) {
         let mut builder = ContextBuilder::new(drivers)
             .thread_id(0)
-            .with_async_handle(self.producer_consumer.clone(), self.scheduler.clone(), dedicated_scheduler)
+            .with_async_handle(
+                self.producer_consumer.clone(),
+                self.scheduler.clone(),
+                dedicated_scheduler,
+            )
             .with_worker_id(self.id);
 
         if with_safety {
@@ -181,7 +189,10 @@ impl WorkerInner {
     }
 
     fn park_worker(&mut self) {
-        if self.scheduler.transition_to_parked(self.local_state == LocalState::Searching, self.id) {
+        if self
+            .scheduler
+            .transition_to_parked(self.local_state == LocalState::Searching, self.id)
+        {
             trace!("Last searcher is trying to sleep, inspect all work sources");
 
             // we transition ourself but we are last one who is going to sleep, let's recheck all queues, otherwise something may stuck there
@@ -218,11 +229,11 @@ impl WorkerInner {
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)
-            }
+            },
             TaskPollResult::Notified => {
                 // For now stupid respawn
                 self.scheduler.spawn_from_runtime(task, &self.producer_consumer);
-            }
+            },
         }
     }
 
@@ -292,7 +303,9 @@ impl WorkerInner {
                 continue;
             }
 
-            let res = worker_access[real_idx].steal_handle.steal_into(&self.own_interactor.steal_handle, None);
+            let res = worker_access[real_idx]
+                .steal_handle
+                .steal_into(&self.own_interactor.steal_handle, None);
 
             stolen += res.unwrap_or_default();
         }
@@ -439,15 +452,21 @@ mod tests {
             scheduler: Some(scheduler.clone()),
         };
 
-        worker.start(scheduler.clone(), drivers, dedicated_scheduler, ready_notifier, &thread_params);
+        worker.start(
+            scheduler.clone(),
+            drivers,
+            dedicated_scheduler,
+            ready_notifier,
+            &thread_params,
+        );
 
         match barrier.wait_for_all(Duration::from_secs(5)) {
             Ok(_) => {
                 debug!("Worker ready, continuing with test...");
-            }
+            },
             Err(_) => {
                 panic!("Timeout waiting for worker to become ready");
-            }
+            },
         }
 
         // First, test that tasks are executed normally

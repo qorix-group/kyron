@@ -68,7 +68,9 @@ impl RuntimeBuilder {
         }
 
         engines.reverse();
-        Ok(Runtime { engines: engines.into() })
+        Ok(Runtime {
+            engines: engines.into(),
+        })
     }
 }
 
@@ -95,11 +97,19 @@ impl Runtime {
     /// Runs the given future to completion on the specified engine, blocking the current thread.
     ///
     /// Returns the result of the future or an error if the engine is not available.
-    pub fn block_on_engine<T: Future + 'static + Send>(&mut self, engine_id: usize, future: T) -> Result<T::Output, RuntimeErrors>
+    pub fn block_on_engine<T: Future + 'static + Send>(
+        &mut self,
+        engine_id: usize,
+        future: T,
+    ) -> Result<T::Output, RuntimeErrors>
     where
         T::Output: Send,
     {
-        Ok(self.engines.get_mut(engine_id).ok_or(RuntimeErrors::EngineNotAvailable)?.block_on(future))
+        Ok(self
+            .engines
+            .get_mut(engine_id)
+            .ok_or(RuntimeErrors::EngineNotAvailable)?
+            .block_on(future))
     }
 
     /// Starts the given future asynchronously on the default engine.
@@ -115,7 +125,11 @@ impl Runtime {
     /// Starts the given future asynchronously on the specified engine.
     ///
     /// Returns [`JoinHandle`] that can be used to retrieve result or an error
-    pub fn spawn_in_engine<T: Future + 'static + Send>(&mut self, engine_id: usize, future: T) -> Result<JoinHandle<T::Output>, RuntimeErrors>
+    pub fn spawn_in_engine<T: Future + 'static + Send>(
+        &mut self,
+        engine_id: usize,
+        future: T,
+    ) -> Result<JoinHandle<T::Output>, RuntimeErrors>
     where
         T::Output: Send,
     {
@@ -168,7 +182,8 @@ mod tests {
         let drop_counter1_clone = drop_counter1.clone();
 
         let threads_while: usize = {
-            let (builder, engine_id) = RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
+            let (builder, engine_id) =
+                RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
             let mut runtime = builder.build().unwrap();
             let t: Result<Result<u32, ()>, RuntimeErrors> = runtime.block_on_engine(engine_id, async move {
                 drop_counter1_clone.fetch_add(1, Ordering::SeqCst);
@@ -197,13 +212,15 @@ mod tests {
     // for an example CI run.
     #[cfg(not(miri))]
     fn test_kyron_return_value() {
-        let (builder, engine_id) = RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
+        let (builder, engine_id) =
+            RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
         let mut runtime = builder.build().unwrap();
         let ret: Result<i32, ()> = runtime.block_on_engine(engine_id, async move { Ok(23) }).unwrap();
 
         assert_eq!(ret, Ok(23));
 
-        let (builder, engine_id) = RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
+        let (builder, engine_id) =
+            RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(3));
         let mut runtime = builder.build().unwrap();
         let ret: Result<i32, ()> = runtime.block_on_engine(engine_id, async move { Ok(42) }).unwrap();
 
@@ -219,7 +236,8 @@ mod tests {
     // for an example CI run.
     #[cfg(not(miri))]
     fn test_kyron_async_run_and_late_wait() {
-        let (builder, engine_id) = RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(2));
+        let (builder, engine_id) =
+            RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(2));
         let mut runtime = builder.build().unwrap();
 
         let barrier = Arc::new(ThreadWaitBarrier::new(1));
@@ -248,7 +266,8 @@ mod tests {
     // for an example CI run.
     #[cfg(not(miri))]
     fn test_kyron_wait_for_all_engines() {
-        let (builder, engine_id1) = RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(2));
+        let (builder, engine_id1) =
+            RuntimeBuilder::new().with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(2));
         let (builder, engine_id2) = builder.with_engine(ExecutionEngineBuilder::new().task_queue_size(8).workers(2));
         let mut runtime = builder.build().unwrap();
 

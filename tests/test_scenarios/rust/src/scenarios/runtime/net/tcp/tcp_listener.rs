@@ -27,11 +27,15 @@ impl Scenario for Smoke {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             let listener = create_tcp_listener(connection_parameters).await;
-            info!("TCP server listening on {}", listener.local_addr().expect("Failed to get local address"));
+            info!(
+                "TCP server listening on {}",
+                listener.local_addr().expect("Failed to get local address")
+            );
 
             // Loop is expected to be terminated by SIGTERM from Python test.
             loop {
@@ -58,7 +62,8 @@ impl Scenario for SetGetTtl {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             let listener = create_tcp_listener(connection_parameters).await;
@@ -70,5 +75,9 @@ impl Scenario for SetGetTtl {
 }
 
 pub fn tcp_listener_group() -> Box<dyn ScenarioGroup> {
-    Box::new(ScenarioGroupImpl::new("tcp_listener", vec![Box::new(Smoke), Box::new(SetGetTtl)], vec![]))
+    Box::new(ScenarioGroupImpl::new(
+        "tcp_listener",
+        vec![Box::new(Smoke), Box::new(SetGetTtl)],
+        vec![],
+    ))
 }

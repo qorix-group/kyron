@@ -45,10 +45,12 @@ impl<T: IoSelector> TcpListenerBridge<T> {
     }
 
     pub fn accept(&self) -> IoResult<(TcpStreamBridge<T>, SocketAddr)> {
-        self.inner.io_call(|listener| listener.accept()).and_then(|(stream, addr)| {
-            let bridge = TcpStreamBridge::new(stream)?;
-            Ok((bridge, addr))
-        })
+        self.inner
+            .io_call(|listener| listener.accept())
+            .and_then(|(stream, addr)| {
+                let bridge = TcpStreamBridge::new(stream)?;
+                Ok((bridge, addr))
+            })
     }
 
     pub fn local_addr(&self) -> IoResult<SocketAddr> {

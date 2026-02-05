@@ -91,7 +91,7 @@ impl<T: ReusableObjectTrait> ReusableObjects<T> {
             ::core::sync::atomic::Ordering::AcqRel,
             ::core::sync::atomic::Ordering::Acquire,
         ) {
-            Ok(_) => {}
+            Ok(_) => {},
             Err(_) => return Err(CommonErrors::NoData), // next is not free yet, this is user problem now
         }
 
@@ -162,7 +162,7 @@ impl<T: ReusableObjectTrait> Drop for ReusableObjects<T> {
                 ::core::sync::atomic::Ordering::AcqRel,
                 ::core::sync::atomic::Ordering::Acquire,
             ) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(actual) => unsafe {
                     assert_eq!(actual, OBJECT_FREE);
                     ::core::sync::atomic::fence(::core::sync::atomic::Ordering::SeqCst); // we will drop the value, so we must sync memory first so we call drop() on current object
@@ -196,7 +196,7 @@ impl<T: ReusableObjectTrait> Drop for ReusableObject<T> {
                     ::core::sync::atomic::Ordering::AcqRel,
                     ::core::sync::atomic::Ordering::Acquire,
                 ) {
-                    Ok(_) => {}
+                    Ok(_) => {},
 
                     // Means that pool is dropped and we need to cleanup own memory
                     Err(val) => {
@@ -205,7 +205,7 @@ impl<T: ReusableObjectTrait> Drop for ReusableObject<T> {
                             self.this.storage.drop_in_place();
                             dealloc(self.this.storage.as_ptr() as *mut u8, Layout::new::<T>());
                         }
-                    }
+                    },
                 }
             }
         }
@@ -520,7 +520,9 @@ mod tests {
             let _ = handle.join().unwrap();
 
             // Should be able to get the object back now
-            let obj = pool.next_object().expect("Should get object back after thread completes");
+            let obj = pool
+                .next_object()
+                .expect("Should get object back after thread completes");
             assert_eq!(obj.id, 0);
             assert_eq!(obj.value, 0); // Value should be cleared
         });
@@ -574,7 +576,7 @@ mod tests {
             let res = pool.next_object();
             match res {
                 Ok(v) => assert_eq!(0, *v),
-                Err(_) => {}
+                Err(_) => {},
             }
 
             let _ = handle.join();

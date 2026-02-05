@@ -91,7 +91,8 @@ impl SchedulerTrait for SchedulerMock {
     }
 
     fn respawn_into_safety(&self, _: TaskRef) {
-        self.safety_spawn_count.fetch_add(1, ::core::sync::atomic::Ordering::SeqCst);
+        self.safety_spawn_count
+            .fetch_add(1, ::core::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -122,7 +123,11 @@ pub(crate) type WakerTask = Arc<AsyncTask<(), Box<dyn Future<Output = ()> + Send
 
 pub(crate) fn get_dummy_task_waker() -> (Waker, WakerTask) {
     let worker_id = create_mock_worker_id(0, 0);
-    let task = Arc::new(AsyncTask::new(box_future(async {}), &worker_id, create_mock_scheduler()));
+    let task = Arc::new(AsyncTask::new(
+        box_future(async {}),
+        &worker_id,
+        create_mock_scheduler(),
+    ));
 
     (create_waker(TaskRef::new(task.clone())), task)
 }

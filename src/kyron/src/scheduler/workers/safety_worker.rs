@@ -16,7 +16,8 @@ use std::sync::Arc;
 
 use iceoryx2_bb_posix::thread::Thread;
 use kyron_foundation::{
-    containers::trigger_queue::TriggerQueue, prelude::vector_extension::VectorExtension, threading::thread_wait_barrier::ThreadReadyNotifier,
+    containers::trigger_queue::TriggerQueue, prelude::vector_extension::VectorExtension,
+    threading::thread_wait_barrier::ThreadReadyNotifier,
 };
 
 use crate::{
@@ -124,7 +125,12 @@ struct WorkerInner {
 }
 
 impl WorkerInner {
-    fn pre_run(&mut self, drivers: Drivers, dedicated_scheduler: Arc<DedicatedScheduler>, scheduler: Arc<AsyncScheduler>) {
+    fn pre_run(
+        &mut self,
+        drivers: Drivers,
+        dedicated_scheduler: Arc<DedicatedScheduler>,
+        scheduler: Arc<AsyncScheduler>,
+    ) {
         let builder = ContextBuilder::new(drivers)
             .thread_id(0)
             .with_dedicated_handle(scheduler, dedicated_scheduler)
@@ -157,11 +163,13 @@ impl WorkerInner {
             match consumer.pop_blocking_with_timeout(::core::time::Duration::from_millis(100)) {
                 Ok(task_ref) => {
                     // Storage is empty
-                    self.local_storage.push(task_ref).expect("Failed to push task into local storage");
-                }
+                    self.local_storage
+                        .push(task_ref)
+                        .expect("Failed to push task into local storage");
+                },
                 Err(CommonErrors::Timeout) => {
                     continue;
-                }
+                },
                 Err(_) => todo!(),
             }
         }
@@ -174,11 +182,11 @@ impl WorkerInner {
         match task.poll(&mut ctx) {
             TaskPollResult::Done => {
                 // Literally nothing to do ;)
-            }
+            },
             TaskPollResult::Notified => {
                 // TODO: Think over if we rather shall use task.schedule() (which would not work right now)
                 self.queue.push(task);
-            }
+            },
         }
     }
 }

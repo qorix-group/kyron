@@ -117,11 +117,11 @@ fn create_pool(logic: &ReusableTestInput) -> ReusableBoxFuturePool<()> {
         "for_type" => {
             let f = just_log_task("".into());
             create_pool_for_type(logic.pool_size, f)
-        }
+        },
         "for_value" => ReusableBoxFuturePool::for_value(logic.pool_size, just_log_task("".into())),
         _ => {
             panic!("Unknown create_method field: {}", logic.create_method);
-        }
+        },
     }
 }
 
@@ -159,7 +159,7 @@ impl Scenario for SpawnFromReusable {
                     Ok(pool_item) => pool_items.push(pool_item),
                     Err(error) => {
                         trace_pool_next_error(&error);
-                    }
+                    },
                 }
             }
 
@@ -214,10 +214,10 @@ impl Scenario for SpawnFromReusableReuse {
                     match res {
                         Ok(pool_item) => {
                             pool_items.push(pool_item);
-                        }
+                        },
                         Err(error) => {
                             trace_pool_next_error(&error);
-                        }
+                        },
                     }
                 }
 
@@ -246,18 +246,29 @@ impl Scenario for SpawnOnDedicated {
     fn run(&self, input: &str) -> Result<(), String> {
         let logic = TestInput::new(input);
         let builder = Runtime::from_json(input)?;
-        let exec_engine = builder.exec_engines().first().expect("No execution engine configuration found");
-        let dedicated_workers = exec_engine.dedicated_workers.clone().expect("No dedicated workers configuration found");
+        let exec_engine = builder
+            .exec_engines()
+            .first()
+            .expect("No execution engine configuration found");
+        let dedicated_workers = exec_engine
+            .dedicated_workers
+            .clone()
+            .expect("No dedicated workers configuration found");
         let mut rt = builder.build();
 
         let mut joiner = RuntimeJoiner::new();
         rt.block_on(async move {
             // Spawn a regular task for thread id comparison
-            spawn(just_log_task("regular_task".into())).await.expect("spawn() failed unexpectedly");
+            spawn(just_log_task("regular_task".into()))
+                .await
+                .expect("spawn() failed unexpectedly");
 
             let unique_worker_id = UniqueWorkerId::from(dedicated_workers[0].id.as_str());
             for task_ndx in 0..logic.task_count {
-                joiner.add_handle(spawn_on_dedicated(just_log_task(format!("task_{task_ndx}")), unique_worker_id));
+                joiner.add_handle(spawn_on_dedicated(
+                    just_log_task(format!("task_{task_ndx}")),
+                    unique_worker_id,
+                ));
             }
 
             joiner.wait_for_all().await;
@@ -280,14 +291,22 @@ impl Scenario for SpawnFromBoxedOnDedicated {
     fn run(&self, input: &str) -> Result<(), String> {
         let logic = TestInput::new(input);
         let builder = Runtime::from_json(input)?;
-        let exec_engine = builder.exec_engines().first().expect("No execution engine configuration found");
-        let dedicated_workers = exec_engine.dedicated_workers.clone().expect("No dedicated workers configuration found");
+        let exec_engine = builder
+            .exec_engines()
+            .first()
+            .expect("No execution engine configuration found");
+        let dedicated_workers = exec_engine
+            .dedicated_workers
+            .clone()
+            .expect("No dedicated workers configuration found");
         let mut rt = builder.build();
 
         let mut joiner = RuntimeJoiner::new();
         rt.block_on(async move {
             // Spawn a regular task for thread id comparison
-            spawn(just_log_task("regular_task".into())).await.expect("spawn() failed unexpectedly");
+            spawn(just_log_task("regular_task".into()))
+                .await
+                .expect("spawn() failed unexpectedly");
 
             let unique_worker_id = UniqueWorkerId::from(dedicated_workers[0].id.as_str());
             for task_ndx in 0..logic.task_count {
@@ -319,7 +338,9 @@ impl Scenario for SpawnFromBoxedOnDedicatedInvalidWorker {
 
         rt.block_on(async move {
             let invalid_worker_id = UniqueWorkerId::from("invalid_worker");
-            let _ = spawn_from_boxed_on_dedicated(box_future(just_log_task("dedicated_task".into())), invalid_worker_id).await;
+            let _ =
+                spawn_from_boxed_on_dedicated(box_future(just_log_task("dedicated_task".into())), invalid_worker_id)
+                    .await;
         });
 
         Ok(())
@@ -338,8 +359,14 @@ impl Scenario for SpawnFromReusableOnDedicated {
     fn run(&self, input: &str) -> Result<(), String> {
         let logic = ReusableTestInput::new(input);
         let builder = Runtime::from_json(input)?;
-        let exec_engine = builder.exec_engines().first().expect("No execution engine configuration found");
-        let dedicated_workers = exec_engine.dedicated_workers.clone().expect("No dedicated workers configuration found");
+        let exec_engine = builder
+            .exec_engines()
+            .first()
+            .expect("No execution engine configuration found");
+        let dedicated_workers = exec_engine
+            .dedicated_workers
+            .clone()
+            .expect("No dedicated workers configuration found");
         let mut rt = builder.build();
 
         let mut joiner = RuntimeJoiner::new();
@@ -353,15 +380,17 @@ impl Scenario for SpawnFromReusableOnDedicated {
                 match res {
                     Ok(pool_item) => {
                         pool_items.push(pool_item);
-                    }
+                    },
                     Err(error) => {
                         trace_pool_next_error(&error);
-                    }
+                    },
                 }
             }
 
             // Spawn a regular task for thread id comparison
-            spawn(just_log_task("regular_task".into())).await.expect("spawn() failed unexpectedly");
+            spawn(just_log_task("regular_task".into()))
+                .await
+                .expect("spawn() failed unexpectedly");
             for pool_item in pool_items {
                 joiner.add_handle(spawn_from_reusable_on_dedicated(pool_item, unique_worker_id));
             }
@@ -386,8 +415,14 @@ impl Scenario for SpawnFromReusableOnDedicatedReuse {
     fn run(&self, input: &str) -> Result<(), String> {
         let logic = ReusableReuseTestInput::new(input);
         let builder = Runtime::from_json(input)?;
-        let exec_engine = builder.exec_engines().first().expect("No execution engine configuration found");
-        let dedicated_workers = exec_engine.dedicated_workers.clone().expect("No dedicated workers configuration found");
+        let exec_engine = builder
+            .exec_engines()
+            .first()
+            .expect("No execution engine configuration found");
+        let dedicated_workers = exec_engine
+            .dedicated_workers
+            .clone()
+            .expect("No dedicated workers configuration found");
         let mut rt = builder.build();
 
         rt.block_on(async move {
@@ -403,15 +438,17 @@ impl Scenario for SpawnFromReusableOnDedicatedReuse {
                     match res {
                         Ok(pool_item) => {
                             pool_items.push(pool_item);
-                        }
+                        },
                         Err(error) => {
                             trace_pool_next_error(&error);
-                        }
+                        },
                     }
                 }
 
                 // Spawn a regular task for thread id comparison
-                spawn(just_log_task("regular_task".into())).await.expect("spawn() failed unexpectedly");
+                spawn(just_log_task("regular_task".into()))
+                    .await
+                    .expect("spawn() failed unexpectedly");
                 for pool_item in pool_items {
                     joiner.add_handle(spawn_from_reusable_on_dedicated(pool_item, unique_worker_id));
                 }
@@ -440,7 +477,9 @@ impl Scenario for SpawnFromReusableOnDedicatedInvalidWorker {
 
         rt.block_on(async move {
             let mut pool = ReusableBoxFuturePool::for_value(logic.pool_size, just_log_task("".into()));
-            let pool_item = pool.next(just_log_task("dedicated_task".into())).expect("Failed to get pool item");
+            let pool_item = pool
+                .next(just_log_task("dedicated_task".into()))
+                .expect("Failed to get pool item");
             let invalid_worker_id = UniqueWorkerId::from("invalid_worker");
 
             let _ = spawn_from_reusable_on_dedicated(pool_item, invalid_worker_id).await;

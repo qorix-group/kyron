@@ -133,7 +133,10 @@ where
 /// This API is intended to provide a way to ensure that user can react on errors within a `task` independent  of other workers state (ie. being busy looping etc).
 /// This means that if the `task` (aka provided Future) will return Err(_), then the task that is awaiting on JoinHandle will be woken up in `SafetyWorker`.
 ///
-pub fn spawn_from_boxed_on_dedicated<T, E>(boxed: FutureBox<SafetyResult<T, E>>, worker_id: UniqueWorkerId) -> JoinHandle<SafetyResult<T, E>>
+pub fn spawn_from_boxed_on_dedicated<T, E>(
+    boxed: FutureBox<SafetyResult<T, E>>,
+    worker_id: UniqueWorkerId,
+) -> JoinHandle<SafetyResult<T, E>>
 where
     T: Send + 'static,
     E: Send + 'static,

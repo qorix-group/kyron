@@ -189,7 +189,10 @@ impl<InType, OutType> MockFnBuilder<InType, OutType> {
     where
         F: FnMut(InType) -> OutType + Send + 'static,
     {
-        assert!(!self.is_will_repeatedly_set, "will_once() called after will_repeatedly()!");
+        assert!(
+            !self.is_will_repeatedly_set,
+            "will_once() called after will_repeatedly()!"
+        );
         {
             let mut info = self.info.lock().unwrap();
             info.once.push_back(Box::new(f));
@@ -407,7 +410,10 @@ mod tests {
 
     #[test]
     fn test_call_count_equals_will_once_count() {
-        let mut mock = MockFnBuilder::<(), bool>::new().will_once_return(true).will_once_return(false).build();
+        let mut mock = MockFnBuilder::<(), bool>::new()
+            .will_once_return(true)
+            .will_once_return(false)
+            .build();
 
         assert!(mock.call(()));
         assert!(!mock.call(()));
@@ -416,7 +422,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_call_count_more_than_will_once_count_should_panic() {
-        let mut mock = MockFnBuilder::<(), bool>::new().will_once_return(true).will_once_return(false).build();
+        let mut mock = MockFnBuilder::<(), bool>::new()
+            .will_once_return(true)
+            .will_once_return(false)
+            .build();
 
         assert!(mock.call(()));
         assert!(!mock.call(()));
@@ -426,7 +435,10 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_panic_call_count_less_than_will_once_count_should_panic() {
-        let mut mock = MockFnBuilder::<(), bool>::new().will_once_return(true).will_once_return(false).build();
+        let mut mock = MockFnBuilder::<(), bool>::new()
+            .will_once_return(true)
+            .will_once_return(false)
+            .build();
 
         assert!(mock.call(()));
     }
@@ -493,7 +505,12 @@ mod tests {
 
     #[test]
     fn test_err_with_times_after_will_repeatedly() {
-        let result = std::panic::catch_unwind(|| MockFnBuilder::<(), bool>::new().will_repeatedly_return(false).times(1).build());
+        let result = std::panic::catch_unwind(|| {
+            MockFnBuilder::<(), bool>::new()
+                .will_repeatedly_return(false)
+                .times(1)
+                .build()
+        });
 
         assert!(result.is_err());
     }
@@ -502,8 +519,14 @@ mod tests {
     fn test_sequence_execution_order_ok() {
         let seq = Sequence::new();
 
-        let mut mock1 = MockFnBuilder::<(), bool>::new().in_sequence(&seq).will_once_return(true).build();
-        let mut mock2 = MockFnBuilder::<(), bool>::new().in_sequence(&seq).will_once_return(false).build();
+        let mut mock1 = MockFnBuilder::<(), bool>::new()
+            .in_sequence(&seq)
+            .will_once_return(true)
+            .build();
+        let mut mock2 = MockFnBuilder::<(), bool>::new()
+            .in_sequence(&seq)
+            .will_once_return(false)
+            .build();
 
         assert!(mock1.call(()));
         assert!(!mock2.call(()));
@@ -514,8 +537,14 @@ mod tests {
     fn test_sequence_execution_order_err() {
         let seq = Sequence::new();
 
-        let mut mock1 = MockFnBuilder::<(), bool>::new().in_sequence(&seq).will_once_return(true).build();
-        let mut mock2 = MockFnBuilder::<(), bool>::new().in_sequence(&seq).will_once_return(false).build();
+        let mut mock1 = MockFnBuilder::<(), bool>::new()
+            .in_sequence(&seq)
+            .will_once_return(true)
+            .build();
+        let mut mock2 = MockFnBuilder::<(), bool>::new()
+            .in_sequence(&seq)
+            .will_once_return(false)
+            .build();
 
         assert!(!mock2.call(()));
         assert!(mock1.call(()));
@@ -538,8 +567,12 @@ mod tests {
     #[test]
     fn test_mockfn_intype_outtype() {
         let mut mock1 = MockFnBuilder::<i32, i32>::new().will_once_invoke(|x| x + 1).build();
-        let mut mock2 = MockFnBuilder::<String, usize>::new().will_once_invoke(|x| x.len()).build();
-        let mut mock3 = MockFnBuilder::<f64, f64>::new().will_repeatedly_invoke(|x| x * 2.0).build();
+        let mut mock2 = MockFnBuilder::<String, usize>::new()
+            .will_once_invoke(|x| x.len())
+            .build();
+        let mut mock3 = MockFnBuilder::<f64, f64>::new()
+            .will_repeatedly_invoke(|x| x * 2.0)
+            .build();
 
         assert_eq!(mock1.call(1), 2);
         assert_eq!(mock2.call("Hello".into()), 5);

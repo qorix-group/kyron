@@ -38,19 +38,28 @@ impl<T: IoRegistryEntry<AsyncSelector> + core::fmt::Debug> BridgedFd<T> {
     /// Creates MIO <-> async bridge for the given MIO object with READABLE and WRITABLE interests.
     pub fn new(mut mio_object: T) -> Result<Self, CommonErrors> {
         let registration = AsyncRegistration::new(&mut mio_object)?;
-        Ok(BridgedFd { mio_object, registration })
+        Ok(BridgedFd {
+            mio_object,
+            registration,
+        })
     }
 
     /// Creates MIO <-> async bridge for the given MIO object with provided interest.
     pub fn new_with_interest(mut mio_object: T, interest: IoEventInterest) -> Result<Self, CommonErrors> {
         let registration = AsyncRegistration::new_with_interest(&mut mio_object, interest)?;
 
-        Ok(BridgedFd { mio_object, registration })
+        Ok(BridgedFd {
+            mio_object,
+            registration,
+        })
     }
 
     /// Async interface to check readiness for the given interest. Keep in mind that this have to be registered before in `new` or `new_with_interest`.
     pub async fn ready(&self, interest: IoEventInterest) -> std::io::Result<ReadinessState> {
-        self.registration.request_readiness(interest).await.map_err(|e| e.into())
+        self.registration
+            .request_readiness(interest)
+            .await
+            .map_err(|e| e.into())
     }
 
     /// This bring ability to conduct synchronous, non blocking IO calls from upper layers with async behavior.
@@ -68,15 +77,15 @@ impl<T: IoRegistryEntry<AsyncSelector> + core::fmt::Debug> BridgedFd<T> {
             match f(&self.mio_object) {
                 Ok(v) => {
                     return Ok(v);
-                }
+                },
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     self.registration.clear_readiness(r, interest);
                     continue;
-                }
+                },
                 Err(e) => {
                     error!("Error reading from mio object via async: {}", e);
                     return Err(e);
-                }
+                },
             }
         }
     }
@@ -108,16 +117,16 @@ impl<T: IoRegistryEntry<AsyncSelector> + core::fmt::Debug> BridgedFd<T> {
                     // be explicitly `read` with WWouldBlock error to rearm notifications. This is pesimization for some of them like `epoll`.
                     // This can be fixed if we coordinate some compile time flag between this place and AsyncSelector binding
                     return Poll::Ready(Ok(()));
-                }
+                },
 
                 Err(e) if e.kind() == ErrorKind::WouldBlock => {
                     // Clear readiness and let it run again and check readiness, if not ready, it will return Poll::Pending
                     self.registration.clear_readiness(readiness, IoEventInterest::READABLE);
-                }
+                },
                 Err(e) => {
                     error!("Error reading from mio object: {}", e);
                     return Poll::Ready(Err(e));
-                }
+                },
             }
         }
     }
@@ -138,16 +147,16 @@ impl<T: IoRegistryEntry<AsyncSelector> + core::fmt::Debug> BridgedFd<T> {
                     // Same as in in read, we can only arm new events received by selector by writing till WouldBlock error.
                     // TODO: Add here code that can detect if we use other selector than poll so we can do clear readiness logic here
                     return Poll::Ready(Ok(n));
-                }
+                },
 
                 Err(e) if e.kind() == ErrorKind::WouldBlock => {
                     // Clear readiness and let it run again and check readiness, if not ready, it will return Poll::Pending
                     self.registration.clear_readiness(readiness, IoEventInterest::WRITABLE);
-                }
+                },
                 Err(e) => {
                     error!("Error writing using mio object: {}", e);
                     return Poll::Ready(Err(e));
-                }
+                },
             }
         }
     }

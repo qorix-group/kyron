@@ -53,7 +53,7 @@ impl<R: AsyncWrite + Unpin + ?Sized> Future for WriteFuture<'_, R> {
             },
             FutureState::Finished => {
                 not_recoverable_error!("Future polled after it finished!")
-            }
+            },
         })
     }
 }

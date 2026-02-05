@@ -1,6 +1,3 @@
 # rust formatter rules.
 # check configuration fields here: https://rust-lang.github.io/rustfmt/?version=v1.6.0&search=
-
-
-tab_spaces = 4
-max_width = 150
+DO_NOT_USE_LOCAL_RUSTFMT_TOML = false

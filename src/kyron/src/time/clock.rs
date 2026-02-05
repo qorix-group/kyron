@@ -48,7 +48,11 @@ impl Sub<Duration> for Instant {
     type Output = Instant;
 
     fn sub(self, rhs: Duration) -> Self::Output {
-        Instant(self.0.checked_sub(rhs).expect("overflow when subtracting duration from instant"))
+        Instant(
+            self.0
+                .checked_sub(rhs)
+                .expect("overflow when subtracting duration from instant"),
+        )
     }
 }
 
@@ -56,7 +60,11 @@ impl Add<Duration> for Instant {
     type Output = Instant;
 
     fn add(self, rhs: Duration) -> Self::Output {
-        Instant(self.0.checked_add(rhs).expect("overflow when adding duration to instant"))
+        Instant(
+            self.0
+                .checked_add(rhs)
+                .expect("overflow when adding duration to instant"),
+        )
     }
 }
 

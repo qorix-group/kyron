@@ -52,7 +52,7 @@ impl ToSocketAddrs for &str {
                 Err(e) => {
                     error!("Failed to parse socket address: {}", e);
                     Err(std::io::Error::from(ErrorKind::Unsupported))
-                }
+                },
             }
         }
     }

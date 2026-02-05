@@ -98,7 +98,12 @@ impl TimeDriver {
     ///
     pub fn next_process_time(&self, wait_on_access: bool) -> Option<Instant> {
         if wait_on_access {
-            return self.inner.write().unwrap().next_process_time().map(|(instant, _)| instant);
+            return self
+                .inner
+                .write()
+                .unwrap()
+                .next_process_time()
+                .map(|(instant, _)| instant);
         } else {
             match self.inner.try_write() {
                 Ok(mut inner) => inner.next_process_time().map(|(instant, _)| instant),
@@ -220,12 +225,12 @@ impl Inner {
                 Some(info) if info.deadline <= now => {
                     self.process_expired(&info);
                     self.set_last_check_time(info.deadline); // advance last_check_time to the expiration time since this is where we are now
-                }
+                },
                 _ => {
                     // finally. no one expires so we can set current processing time
                     self.set_last_check_time(now);
                     break;
-                }
+                },
             }
         }
     }
@@ -280,7 +285,9 @@ impl Inner {
 
     // API assumes that expire_at_msec fits into MAX_TIMEOUT_TIME
     fn register_timeout_internal(&self, expire_at_msec: u64, waker: Waker) -> Result<(), CommonErrors> {
-        let entry = self.allocate_entry(waker, expire_at_msec).map_err(|_| CommonErrors::NoSpaceLeft)?;
+        let entry = self
+            .allocate_entry(waker, expire_at_msec)
+            .map_err(|_| CommonErrors::NoSpaceLeft)?;
 
         let level = self.compute_level_for_timer(self.last_check_time, expire_at_msec);
         self.levels[level].register_wakeup_on_timeout(expire_at_msec, entry);
@@ -321,7 +328,10 @@ impl Inner {
     }
 
     fn instant_into_u64(&self, now: Instant) -> u64 {
-        now.saturating_duration_since(self.start_time).as_millis().try_into().unwrap_or(u64::MAX)
+        now.saturating_duration_since(self.start_time)
+            .as_millis()
+            .try_into()
+            .unwrap_or(u64::MAX)
     }
 }
 
@@ -494,11 +504,17 @@ mod tests {
         driver.register_timeout(reg_time, waker.clone()).unwrap();
 
         let poll_time = Clock::now();
-        assert!(poll_time > reg_time, "Poll time should not be equal to registration time");
+        assert!(
+            poll_time > reg_time,
+            "Poll time should not be equal to registration time"
+        );
 
         driver.process_timeouts(poll_time);
 
-        assert_eq!(driver.register_timeout(reg_time, waker.clone()), Err(CommonErrors::AlreadyDone));
+        assert_eq!(
+            driver.register_timeout(reg_time, waker.clone()),
+            Err(CommonErrors::AlreadyDone)
+        );
     }
 
     #[test]
@@ -511,8 +527,13 @@ mod tests {
 
         let waker: Waker = mock.into_arc().into();
 
-        let reg_time = Clock::now().checked_add(Duration::from_millis(MAX_TIMEOUT_TIME + 1)).unwrap();
-        assert_eq!(driver.register_timeout(reg_time, waker.clone()), Err(CommonErrors::WrongArgs));
+        let reg_time = Clock::now()
+            .checked_add(Duration::from_millis(MAX_TIMEOUT_TIME + 1))
+            .unwrap();
+        assert_eq!(
+            driver.register_timeout(reg_time, waker.clone()),
+            Err(CommonErrors::WrongArgs)
+        );
     }
 
     struct SimpleRng {
@@ -523,7 +544,10 @@ mod tests {
     impl SimpleRng {
         #[allow(dead_code)]
         fn new() -> Self {
-            let seed = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos() as u64;
+            let seed = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_nanos() as u64;
 
             SimpleRng { seed, state: seed }
         }
@@ -585,7 +609,7 @@ mod tests {
 
         for (i, t) in timeouts.iter().enumerate() {
             match driver.register_timeout_internal(*t, waker.clone()) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(e) => panic!("Failed to register timeout at {} with {:?}, iter {}", t, e, i),
             }
         }
@@ -604,16 +628,34 @@ mod tests {
             let before = prev + rng.next_u32() % (current - prev);
 
             driver.process_internal(before);
-            assert_eq!(current_call_times, mock.times(), "Polled in {} should timeout in {}", before, current); // Nothing shall change
+            assert_eq!(
+                current_call_times,
+                mock.times(),
+                "Polled in {} should timeout in {}",
+                before,
+                current
+            ); // Nothing shall change
 
             driver.process_internal(current);
             current_call_times += 1;
 
-            assert_eq!(current_call_times, mock.times(), "Polled in {} should timeout in {}", current, current); // Shall fire
+            assert_eq!(
+                current_call_times,
+                mock.times(),
+                "Polled in {} should timeout in {}",
+                current,
+                current
+            ); // Shall fire
 
             let after = current + rng.next_u32() % (next - current);
             driver.process_internal(after);
-            assert_eq!(current_call_times, mock.times(), "Polled in {} already timeout at {}", after, current); // Nothing shall change
+            assert_eq!(
+                current_call_times,
+                mock.times(),
+                "Polled in {} already timeout at {}",
+                after,
+                current
+            ); // Nothing shall change
 
             prev = after;
         }
@@ -643,7 +685,7 @@ mod tests {
                 }
 
                 index + reps
-            }
+            },
             Err(index) => index,
         }
     }
@@ -673,7 +715,7 @@ mod tests {
 
         for (i, t) in timeouts.iter().enumerate() {
             match driver.register_timeout_internal(*t, waker.clone()) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(e) => panic!("Failed to register timeout at {} with {:?}, iter {}", t, e, i),
             }
         }
@@ -684,7 +726,13 @@ mod tests {
         for p in poll_times {
             let cnt_before = count_less_eq_than(&timeouts, &p);
             driver.process_internal(p);
-            assert_eq!(cnt_before, mock.times(), "Polled in {} should now be called  {} times", p, cnt_before);
+            assert_eq!(
+                cnt_before,
+                mock.times(),
+                "Polled in {} should now be called  {} times",
+                p,
+                cnt_before
+            );
         }
     }
 
@@ -744,7 +792,7 @@ mod tests {
 
         for (i, t) in timeouts.iter().enumerate() {
             match driver.register_timeout_internal(*t, waker.clone()) {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(e) => panic!("Failed to register timeout at {} with {:?}, iter {}", t, e, i),
             }
         }
@@ -754,7 +802,13 @@ mod tests {
         for p in poll_times {
             let cnt_before = count_less_eq_than(&timeouts, &p);
             driver.process_internal(p);
-            assert_eq!(cnt_before, mock.times(), "Polled in {} should now be called  {} times", p, cnt_before);
+            assert_eq!(
+                cnt_before,
+                mock.times(),
+                "Polled in {} should now be called  {} times",
+                p,
+                cnt_before
+            );
         }
     }
 }

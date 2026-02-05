@@ -29,17 +29,17 @@ async fn receive_and_echo(udp_socket: Arc<UdpSocket>) {
                     Ok(m) => {
                         written += m;
                         debug!("Written {} bytes", m);
-                    }
+                    },
                     Err(e) => {
                         info!("Write error: {:?}", e);
                         break;
-                    }
+                    },
                 }
             }
-        }
+        },
         Err(e) => {
             info!("Read error: {:?}", e);
-        }
+        },
     }
 }
 
@@ -52,7 +52,8 @@ impl Scenario for UdpServerEcho {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             let listener = Arc::new(create_udp_listener(connection_parameters).await);
@@ -76,7 +77,8 @@ impl Scenario for UdpServerLogTTL {
 
     fn run(&self, input: &str) -> Result<(), String> {
         let mut rt = Runtime::from_json(input)?.build();
-        let connection_parameters = ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
+        let connection_parameters =
+            ConnectionParameters::from_json(input).expect("Failed to parse connection parameters");
 
         rt.block_on(async move {
             let listener = Arc::new(create_udp_listener(connection_parameters).await);

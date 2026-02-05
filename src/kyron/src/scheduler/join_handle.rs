@@ -80,13 +80,15 @@ impl<T: Send + 'static> Future for JoinHandle<T> {
 
                     match ret {
                         Ok(v) => FutureInternalReturn::ready(Ok(v)),
-                        Err(CommonErrors::OperationAborted) => FutureInternalReturn::ready(Err(CommonErrors::OperationAborted)),
+                        Err(CommonErrors::OperationAborted) => {
+                            FutureInternalReturn::ready(Err(CommonErrors::OperationAborted))
+                        },
                         Err(e) => {
                             not_recoverable_error!(with e, "There has been an error in a task that is not recoverable ({})!");
-                        }
+                        },
                     }
                 }
-            }
+            },
             FutureState::Polled => {
                 // Safety belows forms AqrRel so waker is really written before we do marking
                 let mut ret: Result<T, CommonErrors> = Err(CommonErrors::NoData);
@@ -96,15 +98,17 @@ impl<T: Send + 'static> Future for JoinHandle<T> {
                 match ret {
                     Ok(v) => FutureInternalReturn::ready(Ok(v)),
                     Err(CommonErrors::NoData) => FutureInternalReturn::polled(),
-                    Err(CommonErrors::OperationAborted) => FutureInternalReturn::ready(Err(CommonErrors::OperationAborted)),
+                    Err(CommonErrors::OperationAborted) => {
+                        FutureInternalReturn::ready(Err(CommonErrors::OperationAborted))
+                    },
                     Err(e) => {
                         not_recoverable_error!(with e, "There has been an error in a task that is not recoverable ({})!");
-                    }
+                    },
                 }
-            }
+            },
             FutureState::Finished => {
                 not_recoverable_error!("Future polled after it finished!");
-            }
+            },
         };
 
         self.get_mut().state.assign_and_propagate(res)
@@ -136,7 +140,11 @@ mod tests {
         {
             // Data is present after first poll of join handle
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function::<u32>()),
+                &worker_id,
+                scheduler.clone(),
+            ));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -159,7 +167,11 @@ mod tests {
         {
             // Data is present before first poll of join handle
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function_ret::<u32>(1234)),
+                &worker_id,
+                scheduler.clone(),
+            ));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -182,7 +194,11 @@ mod tests {
 
         {
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function_ret::<u32>(1234)),
+                &worker_id,
+                scheduler.clone(),
+            ));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -199,12 +215,19 @@ mod tests {
 
         {
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function::<u32>()),
+                &worker_id,
+                scheduler.clone(),
+            ));
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
             let mut poller = TestingFuturePoller::new(handle);
 
             assert!(task.abort());
-            assert_eq!(poller.poll(), ::core::task::Poll::Ready(Err(CommonErrors::OperationAborted)));
+            assert_eq!(
+                poller.poll(),
+                ::core::task::Poll::Ready(Err(CommonErrors::OperationAborted))
+            );
         }
     }
 
@@ -216,7 +239,11 @@ mod tests {
         {
             // Data is present before first poll of join handle
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function::<u32>()),
+                &worker_id,
+                scheduler.clone(),
+            ));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -242,7 +269,11 @@ mod tests {
         {
             // Data is present before first poll of join handle
             let worker_id = create_mock_worker_id(0, 1);
-            let task = ArcInternal::new(AsyncTask::new(box_future(test_function::<u32>()), &worker_id, scheduler.clone()));
+            let task = ArcInternal::new(AsyncTask::new(
+                box_future(test_function::<u32>()),
+                &worker_id,
+                scheduler.clone(),
+            ));
 
             let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -292,7 +323,11 @@ mod tests {
             {
                 // Data is present after first poll of join handle
                 let worker_id = create_mock_worker_id(0, 1);
-                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
+                let task = ArcInternal::new(AsyncTask::new(
+                    box_future(test_function_ret::<u32>(1234)),
+                    &worker_id,
+                    scheduler.clone(),
+                ));
 
                 let handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -319,10 +354,10 @@ mod tests {
                             }
 
                             break;
-                        }
+                        },
                         Poll::Pending => {
                             was_pending = true;
-                        }
+                        },
                     }
                     loom::hint::spin_loop();
                 }
@@ -342,7 +377,11 @@ mod tests {
             {
                 // Data is present after first poll of join handle
                 let worker_id = create_mock_worker_id(0, 1);
-                let task = ArcInternal::new(AsyncTask::new(box_future(test_function_ret::<u32>(1234)), &worker_id, scheduler.clone()));
+                let task = ArcInternal::new(AsyncTask::new(
+                    box_future(test_function_ret::<u32>(1234)),
+                    &worker_id,
+                    scheduler.clone(),
+                ));
 
                 let join_handle = JoinHandle::<u32>::new(TaskRef::new(task.clone()));
 
@@ -364,8 +403,8 @@ mod tests {
                     match poller.poll_with_waker(&waker) {
                         Poll::Ready(v) => {
                             break v;
-                        }
-                        Poll::Pending => {}
+                        },
+                        Poll::Pending => {},
                     }
                     loom::hint::spin_loop();
                 };
@@ -379,11 +418,11 @@ mod tests {
                         Ok(v) => {
                             assert_eq!(v, 1234);
                             assert!(!waker_mock.was_waked());
-                        }
+                        },
                         Err(err) => {
                             assert_eq!(err, CommonErrors::OperationAborted);
                             assert!(!waker_mock.was_waked());
-                        }
+                        },
                     }
                 }
 

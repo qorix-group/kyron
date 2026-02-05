@@ -52,7 +52,12 @@ async fn non_blocking_task(name: String, counter: Arc<AtomicUsize>) {
     counter.fetch_add(1, Ordering::Release);
 }
 
-async fn blocking_task(name: String, counter: Arc<AtomicUsize>, counter_unblock_value: usize, notifier: ThreadReadyNotifier) {
+async fn blocking_task(
+    name: String,
+    counter: Arc<AtomicUsize>,
+    counter_unblock_value: usize,
+    notifier: ThreadReadyNotifier,
+) {
     location_checkpoint(name.as_str(), "begin");
     counter.fetch_add(1, Ordering::Release);
     notifier.ready();
@@ -84,9 +89,16 @@ impl Scenario for WorkerWithBlockingTasks {
             let all_tasks_count: usize = logic.blocking_tasks.len() + logic.non_blocking_tasks.len();
             for name in logic.blocking_tasks.as_slice() {
                 let notifier = mid_notifiers.pop().expect("Failed to pop notifier");
-                joiner.add_handle(spawn(blocking_task(name.to_string(), counter.clone(), all_tasks_count, notifier)));
+                joiner.add_handle(spawn(blocking_task(
+                    name.to_string(),
+                    counter.clone(),
+                    all_tasks_count,
+                    notifier,
+                )));
             }
-            mid_barrier.wait_for_notification(Duration::from_secs(5)).expect("Failed to join tasks");
+            mid_barrier
+                .wait_for_notification(Duration::from_secs(5))
+                .expect("Failed to join tasks");
 
             for name in logic.non_blocking_tasks.as_slice() {
                 joiner.add_handle(spawn(non_blocking_task(name.to_string(), counter.clone())));

@@ -141,7 +141,9 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
     }
 
     pub(super) fn sender_dropping(&self) {
-        let prev = self.connected_state.swap(SENDER_GONE, ::core::sync::atomic::Ordering::SeqCst);
+        let prev = self
+            .connected_state
+            .swap(SENDER_GONE, ::core::sync::atomic::Ordering::SeqCst);
 
         if prev == BOTH_IN {
             // if receiver is still there, notify him
@@ -152,7 +154,8 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
     }
 
     pub(super) fn receiver_dropping(&self) {
-        self.connected_state.store(RECV_GONE, ::core::sync::atomic::Ordering::SeqCst);
+        self.connected_state
+            .store(RECV_GONE, ::core::sync::atomic::Ordering::SeqCst);
         let _ = self.waker_store.take();
     }
 
@@ -174,7 +177,8 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
             while consumer.pop().is_some() {}
 
             // Clear the bit to enable again
-            self.connected_state.fetch_and(!RECV_GONE, ::core::sync::atomic::Ordering::AcqRel);
+            self.connected_state
+                .fetch_and(!RECV_GONE, ::core::sync::atomic::Ordering::AcqRel);
         }
     }
 
@@ -203,7 +207,11 @@ impl<T: Copy, const SIZE: usize> Channel<T, SIZE> {
     ///
     /// Safety: Upper layer needs to assure that there is no other `receive` caller at the same time, otherwise this will panic
     ///
-    pub(super) fn receive(&self, consumer: &mut spsc::queue::Consumer<'_, T, SIZE>, waker: Waker) -> Result<T, CommonErrors> {
+    pub(super) fn receive(
+        &self,
+        consumer: &mut spsc::queue::Consumer<'_, T, SIZE>,
+        waker: Waker,
+    ) -> Result<T, CommonErrors> {
         loop {
             let empty = self.queue.is_empty();
 
@@ -255,18 +263,23 @@ unsafe impl<const SIZE: usize, T: Copy> Send for ReceiverFuture<'_, T, SIZE> {}
 impl<T: Copy, const SIZE: usize> Future for ReceiverFuture<'_, T, SIZE> {
     type Output = Option<T>;
 
-    fn poll(mut self: ::core::pin::Pin<&mut Self>, cx: &mut ::core::task::Context<'_>) -> ::core::task::Poll<Self::Output> {
+    fn poll(
+        mut self: ::core::pin::Pin<&mut Self>,
+        cx: &mut ::core::task::Context<'_>,
+    ) -> ::core::task::Poll<Self::Output> {
         let res = match self.state {
-            FutureState::New | FutureState::Polled => self.parent.receive(&mut self.consumer, cx.waker().clone()).map_or_else(
-                |e| {
-                    if e == CommonErrors::NoData {
-                        FutureInternalReturn::polled()
-                    } else {
-                        FutureInternalReturn::ready(None)
-                    }
-                },
-                |v| FutureInternalReturn::ready(Some(v)),
-            ),
+            FutureState::New | FutureState::Polled => {
+                self.parent.receive(&mut self.consumer, cx.waker().clone()).map_or_else(
+                    |e| {
+                        if e == CommonErrors::NoData {
+                            FutureInternalReturn::polled()
+                        } else {
+                            FutureInternalReturn::ready(None)
+                        }
+                    },
+                    |v| FutureInternalReturn::ready(Some(v)),
+                )
+            },
             FutureState::Finished => not_recoverable_error!("Cannot reuse future!"),
         };
 

@@ -79,11 +79,11 @@ impl AsyncScheduler {
         match local_queue.push(task, &self.global_queue) {
             Ok(_) => {
                 self.try_notify_siblings_workers(Some(ctx_get_worker_id()));
-            }
+            },
             Err(_) => {
                 // TODO: Add error hooks so we can notify app owner that we are done
                 panic!("Cannot push to queue anymore, overflow!");
-            }
+            },
         }
     }
 
@@ -139,19 +139,23 @@ impl AsyncScheduler {
     /// Tries to move worker to searching state if conditions are met. No more than half of workers shall be in searching state to avoid too much contention on stealing queue
     ///
     pub(super) fn try_transition_worker_to_searching(&self) -> bool {
-        let searching = self.num_of_searching_workers.load(::core::sync::atomic::Ordering::SeqCst);
+        let searching = self
+            .num_of_searching_workers
+            .load(::core::sync::atomic::Ordering::SeqCst);
         let predicted = (searching * SCHEDULER_MAX_SEARCHING_WORKERS_DIVIDER) as usize;
 
         if predicted >= self.worker_access.len() {
             return false;
         }
 
-        self.num_of_searching_workers.fetch_add(1, ::core::sync::atomic::Ordering::SeqCst);
+        self.num_of_searching_workers
+            .fetch_add(1, ::core::sync::atomic::Ordering::SeqCst);
         true
     }
 
     pub(super) fn transition_worker_to_executing(&self) {
-        self.num_of_searching_workers.fetch_sub(1, ::core::sync::atomic::Ordering::SeqCst);
+        self.num_of_searching_workers
+            .fetch_sub(1, ::core::sync::atomic::Ordering::SeqCst);
     }
 
     pub(super) fn transition_to_parked(&self, was_searching: bool, id: WorkerId) -> bool {
@@ -160,7 +164,9 @@ impl AsyncScheduler {
         let mut num_of_searching = 2; //2 as false condition
 
         if was_searching {
-            num_of_searching = self.num_of_searching_workers.fetch_sub(1, ::core::sync::atomic::Ordering::SeqCst);
+            num_of_searching = self
+                .num_of_searching_workers
+                .fetch_sub(1, ::core::sync::atomic::Ordering::SeqCst);
         }
 
         guard.push(id.worker_id() as usize).expect("Failed to push worker id"); // worker_id is index in worker_access
@@ -220,7 +226,9 @@ impl AsyncScheduler {
     // A worker should be notified only if no other workers are already in the searching state.
     //
     fn should_notify_some_worker(&self) -> bool {
-        self.num_of_searching_workers.fetch_sub(0, ::core::sync::atomic::Ordering::SeqCst) == 0
+        self.num_of_searching_workers
+            .fetch_sub(0, ::core::sync::atomic::Ordering::SeqCst)
+            == 0
     }
 }
 
@@ -287,7 +295,11 @@ impl SchedulerTrait for DedicatedSchedulerLocalInner {
 
 #[cfg(test)]
 #[allow(dead_code)]
-pub(crate) fn scheduler_new(workers_cnt: usize, local_queue_size: u32, drivers: &super::driver::Drivers) -> AsyncScheduler {
+pub(crate) fn scheduler_new(
+    workers_cnt: usize,
+    local_queue_size: u32,
+    drivers: &super::driver::Drivers,
+) -> AsyncScheduler {
     // artificially construct a scheduler
 
     let mut worker_interactors = BoxInternal::<[WorkerInteractor]>::new_uninit_slice(workers_cnt);

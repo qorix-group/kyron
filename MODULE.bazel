@@ -26,7 +26,7 @@ bazel_dep(name = "buildifier_prebuilt", version = "7.3.1")
 bazel_dep(name = "platforms", version = "1.0.0")
 
 # S-CORE process rules
-bazel_dep(name = "score_bazel_platforms", version = "0.0.3")
+bazel_dep(name = "score_bazel_platforms", version = "0.0.4")
 bazel_dep(name = "score_docs_as_code", version = "2.2.0")
 bazel_dep(name = "score_tooling", version = "1.0.4")
 
@@ -38,7 +38,7 @@ bazel_dep(name = "score_virtualization", version = "0.0.1", dev_dependency = Tru
 bazel_dep(name = "score_toolchains_gcc", version = "0.5", dev_dependency = True)
 bazel_dep(name = "score_toolchains_qnx", version = "0.0.6", dev_dependency = True)
 bazel_dep(name = "rust_qnx8_toolchain", version = "1.2.0", dev_dependency = True)
-bazel_dep(name = "score_toolchains_rust", version = "0.1.1", dev_dependency = True)
+bazel_dep(name = "score_toolchains_rust", version = "0.4.0", dev_dependency = True)
 
 # Others
 bazel_dep(name = "custom_qemu", version = "1.0.0", dev_dependency = True)
@@ -54,11 +54,11 @@ git_override(
     remote = "https://github.com/qorix-group/score_virtualization.git",
 )
 
-git_override(
-    module_name = "score_toolchains_rust",
-    commit = "bcf8e5364f72cf136ec81960350a82e2b5c45449",
-    remote = "https://github.com/eclipse-score/toolchains_rust.git",
-)
+# git_override(
+#     module_name = "score_toolchains_rust",
+#     commit = "bcf8e5364f72cf136ec81960350a82e2b5c45449",
+#     remote = "https://github.com/eclipse-score/toolchains_rust.git",
+# )
 
 archive_override(
     module_name = "rust_qnx8_toolchain",
@@ -79,13 +79,13 @@ archive_override(
 
 # Extensions
 
-gcc = use_extension("@score_toolchains_gcc//extentions:gcc.bzl", "gcc", dev_dependency = True)
-gcc.toolchain(
-    sha256 = "457f5f20f57528033cb840d708b507050d711ae93e009388847e113b11bf3600",
-    strip_prefix = "x86_64-unknown-linux-gnu",
-    url = "https://github.com/eclipse-score/toolchains_gcc_packages/releases/download/0.0.1/x86_64-unknown-linux-gnu_gcc12.tar.gz",
-)
-use_repo(gcc, "gcc_toolchain", "gcc_toolchain_gcc")
+# gcc = use_extension("@score_toolchains_gcc//extentions:gcc.bzl", "gcc", dev_dependency = True)
+# gcc.toolchain(
+#     sha256 = "457f5f20f57528033cb840d708b507050d711ae93e009388847e113b11bf3600",
+#     strip_prefix = "x86_64-unknown-linux-gnu",
+#     url = "https://github.com/eclipse-score/toolchains_gcc_packages/releases/download/0.0.1/x86_64-unknown-linux-gnu_gcc12.tar.gz",
+# )
+# use_repo(gcc, "gcc_toolchain", "gcc_toolchain_gcc")
 
 toolchains_qnx = use_extension("@score_toolchains_qnx//:extensions.bzl", "toolchains_qnx", dev_dependency = True)
 toolchains_qnx.sdp(
@@ -118,4 +118,45 @@ use_repo(toolchains_qnx, "toolchains_qnx_qcc")
 use_repo(toolchains_qnx, "toolchains_qnx_ifs")
 
 # S-CORE crates
-bazel_dep(name = "score_crates", version = "0.0.5")
+bazel_dep(name = "score_crates", version = "0.0.6")
+
+bazel_dep(name = "score_bazel_cpp_toolchains", version = "0.2.0", dev_dependency = True)
+
+gcc = use_extension("@score_bazel_cpp_toolchains//extensions:gcc.bzl", "gcc", dev_dependency = True)
+gcc.toolchain(
+    name = "score_gcc_x86_64_toolchain",
+    target_cpu = "x86_64",
+    target_os = "linux",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_gcc_aarch64_toolchain",
+    target_cpu = "aarch64",
+    target_os = "linux",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_qcc_x86_64_toolchain",
+    sdp_version = "8.0.0",
+    target_cpu = "x86_64",
+    target_os = "qnx",
+    use_default_package = True,
+    version = "12.2.0",
+)
+gcc.toolchain(
+    name = "score_qcc_aarch64_toolchain",
+    sdp_version = "8.0.0",
+    target_cpu = "aarch64",
+    target_os = "qnx",
+    use_default_package = True,
+    version = "12.2.0",
+)
+use_repo(
+    gcc,
+    "score_gcc_aarch64_toolchain",
+    "score_gcc_x86_64_toolchain",
+    "score_qcc_aarch64_toolchain",
+    "score_qcc_x86_64_toolchain",
+)

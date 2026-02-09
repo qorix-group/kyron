@@ -63,6 +63,14 @@ rm bazelisk-amd64.deb
 
 Correct Bazel version will be installed on first run, based on `bazelversion` file.
 
+## Just
+
+This repository is using [just](https://just.systems/man/en/) to use complex commands without needing to remember them all. Just setup [autocompletion](https://just.systems/man/en/shell-completion-scripts.html) for your shell or simply call:
+
+```bash
+just help
+```
+
 ## Build
 
 List all targets:

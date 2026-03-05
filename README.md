@@ -1,5 +1,6 @@
 # score_kyron
 
+TEST
 Repository for **safe async runtime** called **kyron** for Rust
 
 [![Nightly CIT](../../actions/workflows/component_integration_tests.yml/badge.svg)](../../actions/workflows/component_integration_tests.yml)

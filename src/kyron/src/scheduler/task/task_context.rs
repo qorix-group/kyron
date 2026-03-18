@@ -12,7 +12,7 @@
 // *******************************************************************************
 
 use crate::{
-    core::types::TaskId,
+    common::types::TaskId,
     scheduler::{
         context::{ctx_get_running_task_id, ctx_get_worker_id, ctx_set_running_task, ctx_unset_running_task},
         workers::worker_types::WorkerId,

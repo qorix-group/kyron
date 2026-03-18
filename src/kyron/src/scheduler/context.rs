@@ -11,8 +11,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // *******************************************************************************
 
-use crate::core::types::BoxCustom;
-use crate::core::types::FutureBox;
+use crate::common::types::BoxCustom;
+use crate::common::types::FutureBox;
 use crate::futures::reusable_box_future::ReusableBoxFuture;
 use crate::safety::SafetyResult;
 use crate::scheduler::driver::Drivers;
@@ -26,7 +26,7 @@ use kyron_foundation::prelude::error;
 use ::core::pin::Pin;
 use std::{rc::Rc, sync::Arc};
 
-use crate::core::types::TaskId;
+use crate::common::types::TaskId;
 use crate::AsyncTask;
 use crate::JoinHandle;
 
@@ -35,7 +35,7 @@ use super::scheduler_mt::DedicatedSchedulerLocal;
 
 use super::workers::worker_types::WorkerId;
 use super::{scheduler_mt::AsyncScheduler, task::async_task::TaskRef};
-use crate::core::types::UniqueWorkerId;
+use crate::common::types::UniqueWorkerId;
 
 enum HandlerImpl {
     Async(AsyncInnerHandler),

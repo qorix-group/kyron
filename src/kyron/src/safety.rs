@@ -12,7 +12,7 @@
 // *******************************************************************************
 
 use crate::{
-    core::types::{box_future, FutureBox, UniqueWorkerId},
+    common::types::{box_future, FutureBox, UniqueWorkerId},
     ctx_get_handler,
     futures::reusable_box_future::ReusableBoxFuture,
     scheduler::{context::ctx_get_worker_id, join_handle::JoinHandle},

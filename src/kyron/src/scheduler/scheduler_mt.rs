@@ -12,8 +12,8 @@
 // *******************************************************************************
 
 use super::workers::worker_types::*;
-use crate::core::types::BoxInternal;
-use crate::core::types::UniqueWorkerId;
+use crate::common::types::BoxInternal;
+use crate::common::types::UniqueWorkerId;
 use crate::ctx_get_handler;
 use crate::io::driver::IoDriverUnparker;
 use crate::{scheduler::context::ctx_get_worker_id, TaskRef};

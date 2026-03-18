@@ -13,7 +13,7 @@
 use crate::internals::execution_barrier::RuntimeJoiner;
 use crate::internals::runtime_helper::Runtime;
 use crate::internals::thread_params::{current_thread_priority_params, ThreadPriorityParams};
-use kyron::core::types::UniqueWorkerId;
+use kyron::common::types::UniqueWorkerId;
 use kyron::futures::reusable_box_future::ReusableBoxFuturePool;
 use kyron::{safety, spawn};
 use serde::Deserialize;

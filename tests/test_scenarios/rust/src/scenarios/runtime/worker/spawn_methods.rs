@@ -12,9 +12,9 @@
 // *******************************************************************************
 use crate::internals::execution_barrier::RuntimeJoiner;
 use crate::internals::runtime_helper::Runtime;
-use kyron::core::types::UniqueWorkerId;
+use kyron::common::types::UniqueWorkerId;
 use kyron::futures::reusable_box_future::ReusableBoxFuturePool;
-use kyron::{core::types::box_future, *};
+use kyron::{common::types::box_future, *};
 use kyron_foundation::prelude::CommonErrors;
 use test_scenarios_rust::scenario::{Scenario, ScenarioGroup, ScenarioGroupImpl};
 

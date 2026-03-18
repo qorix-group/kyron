@@ -22,7 +22,7 @@ use kyron_foundation::prelude::FoundationAtomicU16;
 use kyron_testing::prelude::MockFn;
 
 use crate::{
-    core::types::{box_future, ArcInternal},
+    common::types::{box_future, ArcInternal},
     scheduler::{
         scheduler_mt::SchedulerTrait,
         waker::create_waker,

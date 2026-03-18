@@ -14,7 +14,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    core::types::{box_future, FutureBox, UniqueWorkerId},
+    common::types::{box_future, FutureBox, UniqueWorkerId},
     futures::reusable_box_future::ReusableBoxFuture,
     scheduler::{join_handle::JoinHandle, task::async_task::TaskRef, waker::create_waker},
     testing::*,
@@ -298,7 +298,7 @@ pub mod safety {
     use ::core::future::Future;
 
     use crate::{
-        core::types::{box_future, FutureBox},
+        common::types::{box_future, FutureBox},
         futures::reusable_box_future::ReusableBoxFuture,
         scheduler::join_handle::JoinHandle,
     };

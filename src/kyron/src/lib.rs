@@ -42,9 +42,9 @@
 //! where it was originally spawned, providing strong execution locality guarantees when needed.
 
 use ::core::future::Future;
-use core::types::{box_future, FutureBox};
+use common::types::{box_future, FutureBox};
 
-use crate::core::types::UniqueWorkerId;
+use crate::common::types::UniqueWorkerId;
 use futures::reusable_box_future::ReusableBoxFuture;
 use kyron_foundation::{not_recoverable_error, prelude::*};
 use scheduler::{
@@ -53,7 +53,7 @@ use scheduler::{
 };
 
 pub mod channels;
-pub mod core;
+pub mod common;
 pub mod futures;
 pub mod io;
 pub mod ipc;

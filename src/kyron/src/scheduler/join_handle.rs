@@ -124,7 +124,7 @@ mod tests {
     use ::core::task::Context;
 
     use crate::{
-        core::types::{box_future, ArcInternal},
+        common::types::{box_future, ArcInternal},
         AsyncTask,
     };
 
@@ -301,7 +301,7 @@ mod tests {
     use ::core::task::Context;
 
     use crate::{
-        core::types::{box_future, ArcInternal},
+        common::types::{box_future, ArcInternal},
         scheduler::workers::worker_types::{WorkerId, WorkerType},
         AsyncTask,
     };

@@ -11,7 +11,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // *******************************************************************************
 
-use crate::core::types::UniqueWorkerId;
+use crate::common::types::UniqueWorkerId;
 use crate::io::driver::{IoDriver, IoDriverUnparker};
 use crate::scheduler::scheduler_mt::AsyncScheduler;
 use crate::scheduler::task::async_task::TaskRef;

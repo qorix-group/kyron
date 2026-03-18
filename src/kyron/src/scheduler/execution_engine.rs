@@ -22,7 +22,7 @@ use super::workers::worker_types::*;
 use crate::scheduler::driver::Drivers;
 use crate::{
     box_future,
-    core::types::UniqueWorkerId,
+    common::types::UniqueWorkerId,
     scheduler::{workers::ThreadParameters, SchedulerType},
     AsyncTask, Future,
 };

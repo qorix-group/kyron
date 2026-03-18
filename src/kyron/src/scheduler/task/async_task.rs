@@ -12,7 +12,7 @@
 // *******************************************************************************
 
 use super::task_state::*;
-use crate::core::types::*;
+use crate::common::types::*;
 use crate::scheduler::safety_waker::create_safety_waker;
 use crate::scheduler::scheduler_mt::SchedulerTrait;
 use crate::scheduler::workers::worker_types::WorkerId;
@@ -647,7 +647,7 @@ mod tests {
     };
 
     use crate::{
-        core::types::{box_future, ArcInternal},
+        common::types::{box_future, ArcInternal},
         safety::SafetyResult,
         scheduler::{
             scheduler_mt::SchedulerTrait,
@@ -918,7 +918,7 @@ mod tests {
     use kyron_testing::prelude::*;
     use loom::model::Builder;
 
-    use crate::core::types::{box_future, ArcInternal};
+    use crate::common::types::{box_future, ArcInternal};
 
     async fn dummy() -> u32 {
         0

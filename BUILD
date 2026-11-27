@@ -82,11 +82,24 @@ exports_files([
 # Creates all documentation targets:
 # - `:docs` for building documentation at build-time
 docs(
-    data = [
-        # "@score_platform//:needs_json",
-        # "@score_process//:needs_json",
+    bundles = [
+        {
+            "bundle": "//src/kyron:docs",
+            "mount_at": "components/kyron_runtime",
+        },
+        {
+            "bundle": "//src/kyron-foundation:docs",
+            "mount_at": "components/kyron_foundation",
+        },
     ],
+    external_needs = [
+        "@score_platform//:needs_json_file",
+        "@score_process_description//:needs_json_file",
+    ],
+    project = "S-CORE Kyron",
+    project_url = "https://eclipse-score.github.io/kyron/",
     source_dir = "docs",
+    test_sources = ["tests/test_cases"],
 )
 
 # Test suites

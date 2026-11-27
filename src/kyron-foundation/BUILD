@@ -11,6 +11,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("@score_docs_as_code//:docs.bzl", "docs_bundle")
+
+docs_bundle(
+    name = "docs",
+    code_targets = [":libkyron_foundation"],
+    primary_need_id = "comp__kyron_foundation",
+    source_dir = "docs",
+    visibility = ["//visibility:public"],
+)
 
 rust_library(
     name = "libkyron_foundation",

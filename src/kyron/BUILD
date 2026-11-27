@@ -12,6 +12,15 @@
 # *******************************************************************************
 load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("@score_docs_as_code//:docs.bzl", "docs_bundle")
+
+docs_bundle(
+    name = "docs",
+    code_targets = [":libkyron"],
+    primary_need_id = "comp__kyron_runtime",
+    source_dir = "docs",
+    visibility = ["//visibility:public"],
+)
 
 _COMMON_DEPS = [
     "//src/kyron-foundation:libkyron_foundation",

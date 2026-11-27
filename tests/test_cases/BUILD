@@ -44,6 +44,8 @@ score_py_pytest(
     args = [
         "--traces=all",
         "--target-path=$(rootpath //tests/test_scenarios/rust:test_scenarios)",
+        # Repository-relative test file paths in the JUnit XML, used by docs-as-code to link tests to requirements.
+        "--rootdir=.",
     ],
     data = [
         ":python_tc_venv",
@@ -67,6 +69,8 @@ score_py_pytest(
         "--count=5",
         "--repeat-scope=session",
         "--target-path=$(rootpath //tests/test_scenarios/rust:test_scenarios)",
+        # Repository-relative test file paths in the JUnit XML, used by docs-as-code to link tests to requirements.
+        "--rootdir=.",
     ],
     data = [
         ":python_tc_venv",

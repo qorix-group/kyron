@@ -12,14 +12,24 @@
    # SPDX-License-Identifier: Apache-2.0
    # *******************************************************************************
 
+.. _kyron_qm_tailoring:
+
 QM Classification and Safety Tailoring
 ======================================
+
+.. document:: Kyron QM Classification and Safety Tailoring
+   :id: doc__kyron_qm_tailoring
+   :status: draft
+   :version: 1
+   :safety: QM
+   :security: NO
+   :realizes: wp__safety_tailoring[version==1]
+   :belongs_to: mod__kyron[version==1]
 
 .. note::
 
    **Status: draft.** This page needs agreement from the S-CORE Safety Manager and
-   Security Manager. Once the process needs are wired into the documentation build, it
-   becomes a ``doc__`` need that realizes ``wp__safety_tailoring``.
+   Security Manager.
 
 .. contents:: Table of Contents
    :depth: 2

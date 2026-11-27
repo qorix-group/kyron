@@ -14,6 +14,6 @@
 
 > [!IMPORTANT]
 > Please replace `[ISSUE-NUMBER]` with the issue-number that tracks this bug fix. If there is no such
-> ticket yet, create one via [this issue template](../ISSUE_TEMPLATE/new?template=improvement.md).
+> ticket yet, create one via [a new issue](https://github.com/eclipse-score/kyron/issues/new).
 
 closes [ISSUE-NUMBER] (improvement ticket)

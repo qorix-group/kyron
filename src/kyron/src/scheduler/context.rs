@@ -279,6 +279,7 @@ impl Handler {
         let handle = JoinHandle::new(task_ref.clone());
 
         let ret = scheduler.spawn(task_ref, worker_id);
+        // req-Id: comp_req__kyron_runtime__dedicated_unknown_id
         assert!(ret, "Tried to spawn on not registered dedicated worker {:?}", worker_id);
 
         handle
@@ -313,6 +314,7 @@ impl Handler {
         let handle = JoinHandle::new(task_ref.clone());
 
         let ret = scheduler.spawn(task_ref, worker_id);
+        // req-Id: comp_req__kyron_runtime__dedicated_unknown_id
         assert!(ret, "Tried to spawn on not registered dedicated worker {:?}", worker_id);
 
         handle

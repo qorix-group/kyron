@@ -76,6 +76,7 @@ pub use kyron_macros::main;
 pub use crate::scheduler::join_handle::JoinHandle;
 pub use crate::scheduler::join_handle::JoinResult;
 
+// req-Id: comp_req__kyron_runtime__async_task_exec
 ///
 /// Spawns a given `future` into runtime and let it execute on any of configured workers
 /// This function allocates a `future` dynamically using [`Box`]

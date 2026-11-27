@@ -14,6 +14,7 @@
 from typing import Any
 
 import pytest
+from cit_properties import add_test_properties
 from cit_scenario import CitScenario
 from result_code import ResultCode
 from testing_utils import LogContainer, ScenarioResult
@@ -40,11 +41,17 @@ class TestSpawn(CitScenario):
             },
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__async_task_exec"],
+        test_type="interface-test",
+        derivation_technique="requirements-analysis",
+    )
     def test_task_execution(
         self,
         task_count: int,
         logs_info_level: LogContainer,
     ) -> None:
+        """Verify that every task spawned with the spawn API is executed."""
         executed_tasks = logs_info_level.get_logs(field="name", pattern=r"task_\d+")
         assert len(executed_tasks) == task_count, "All spawned tasks should be executed"
 
@@ -230,11 +237,17 @@ class TestSpawnOnDedicated(CitScenario):
             },
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__dedicated_locality"],
+        test_type="interface-test",
+        derivation_technique="requirements-analysis",
+    )
     def test_task_to_worker_assignment(
         self,
         task_count: int,
         logs_info_level: LogContainer,
     ) -> None:
+        """Verify that all tasks spawned on a dedicated worker run on its thread, apart from async tasks."""
         regular_worker_task = logs_info_level.find_log(field="name", value="regular_task")
         dedicated_worker_tasks = logs_info_level.get_logs(field="name", pattern=r"task_\d+")
         assert len(dedicated_worker_tasks) == task_count, "All dedicated tasks should be executed"
@@ -274,7 +287,13 @@ class TestSpawnFromBoxedOnDedicatedInvalidWorker(CitScenario):
     def expect_command_failure(self) -> bool:
         return True
 
+    @add_test_properties(
+        fully_verifies=["comp_req__kyron_runtime__dedicated_unknown_id"],
+        test_type="interface-test",
+        derivation_technique="error-guessing",
+    )
     def test_invalid_usage(self, results: ScenarioResult) -> None:
+        """Verify that spawning a boxed future on an unregistered dedicated worker ID is rejected."""
         # Panic inside async causes 'SIGABRT'.
         # TODO: determine this should be panic, and not an error.  # noqa: FIX002
         assert results.return_code == ResultCode.SIGABRT

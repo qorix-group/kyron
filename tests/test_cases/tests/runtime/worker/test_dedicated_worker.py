@@ -17,6 +17,7 @@ from typing import Any
 
 import psutil
 import pytest
+from cit_properties import add_test_properties
 from cit_scenario import CitScenario
 from result_code import ResultCode
 from testing_utils import LogContainer, ScenarioResult, cap_utils
@@ -51,11 +52,17 @@ class TestOnlyDedicatedWorkers(CitScenario):
             }
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__dedicated_worker"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_valid(
         self,
         logs_info_level: LogContainer,
         dedicated_workers: list[dict[str, Any]],
     ) -> None:
+        """Verify that every registered dedicated worker runs on its own thread."""
         # Check dedicated workers barrier wait result.
         wait_result_log = logs_info_level.find_log("wait_result")
         assert wait_result_log is not None
@@ -90,7 +97,13 @@ class TestSpawnToUnregisteredWorker(CitScenario):
     def expect_command_failure(self) -> bool:
         return True
 
+    @add_test_properties(
+        fully_verifies=["comp_req__kyron_runtime__dedicated_unknown_id"],
+        test_type="requirements-based",
+        derivation_technique="error-guessing",
+    )
     def test_invalid(self, results: ScenarioResult) -> None:
+        """Verify that spawning on an unregistered dedicated worker ID is a non-recoverable error."""
         # Panic inside async causes 'SIGABRT'.
         # TODO: determine this should be panic, and not an error.  # noqa: FIX002
         assert results.return_code == ResultCode.SIGABRT
@@ -121,7 +134,13 @@ class TestReregisterDedicatedWorker(CitScenario):
     def expect_command_failure(self) -> bool:
         return True
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__dedicated_worker"],
+        test_type="requirements-based",
+        derivation_technique="error-guessing",
+    )
     def test_invalid(self, results: ScenarioResult) -> None:
+        """Verify that registering the same dedicated worker ID twice is rejected."""
         assert results.return_code == ResultCode.PANIC
 
         assert results.stderr
@@ -157,12 +176,18 @@ class BlockOneUseOther(CitScenario):
             }
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__dedicated_worker"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_valid(
         self,
         logs_info_level: LogContainer,
         num_workers: int,
         dedicated_workers: list[dict[str, Any]],
     ) -> None:
+        """Verify that blocking dedicated workers does not block async workers, and vice versa."""
         num_dedicated_workers = len(dedicated_workers)
         # Check for barrier wait results.
         assert logs_info_level.find_log("ded_wait_result", value="ok")
@@ -228,7 +253,13 @@ class TestMultipleTasks(CitScenario):
             "test": {"num_tasks": num_tasks},
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__dedicated_locality"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_valid(self, logs_info_level: LogContainer, num_tasks: int) -> None:
+        """Verify that a task on a dedicated worker stays on that worker thread after it yields."""
         # Check each task have messages in correct order.
         exp_messages = ["enter", "nested_task", "unblock", "exit"]
         for i in range(num_tasks):

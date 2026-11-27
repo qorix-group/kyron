@@ -261,6 +261,7 @@ impl ExecutionEngineBuilder {
         self.id = id;
         self
     }
+    // req-Id: comp_req__kyron_runtime__fixed_worker_pool
     ///
     /// Will create engine with `cnt` async workers. It has to be in range [1, 128]
     ///
@@ -348,6 +349,7 @@ impl ExecutionEngineBuilder {
         self
     }
 
+    // req-Id: comp_req__kyron_runtime__dedicated_worker
     ///
     /// Adds new dedicated worker identified by `id` to the engine with given thread parameters `params`.
     /// If priority or scheduler type is `None`, then both attributes will be inherited from parent thread.

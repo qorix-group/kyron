@@ -254,6 +254,7 @@ impl DedicatedScheduler {
     }
 }
 
+// req-Id: comp_req__kyron_runtime__dedicated_locality
 ///
 /// This is small proxy scheduler used in `AsyncTask` that keeps a track of `worker_id` on which the `task` has been spawn. This let us
 /// respawn a task correctly into the same worker.

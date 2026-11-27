@@ -17,6 +17,7 @@ from typing import Any
 
 import psutil
 import pytest
+from cit_properties import add_test_properties
 from cit_scenario import CitScenario
 from result_code import ResultCode
 from testing_utils import LogContainer, ScenarioResult, cap_utils
@@ -98,12 +99,18 @@ class TestWorkers_Valid(TestWorkers):
         # Tests with many workers take longer to execute.
         return 15.0
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__fixed_worker_pool"],
+        test_type="requirements-based",
+        derivation_technique="boundary-values",
+    )
     def test_valid(
         self,
         results: ScenarioResult,
         logs_info_level: LogContainer,
         workers: int,
     ) -> None:
+        """Verify that an engine runs exactly the configured number of async workers (1 to 128)."""
         assert results.return_code == ResultCode.SUCCESS
 
         # Check barrier resulted in timeout.
@@ -131,7 +138,13 @@ class TestWorkers_Invalid(TestWorkers):
     def expect_command_failure(self) -> bool:
         return True
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__fixed_worker_pool"],
+        test_type="requirements-based",
+        derivation_technique="boundary-values",
+    )
     def test_invalid(self, results: ScenarioResult, workers: int) -> None:
+        """Verify that a worker count outside 1 to 128 is rejected when the engine is built."""
         assert results.return_code == ResultCode.PANIC
         assert results.stderr is not None
         assert f"Cannot create engine with {workers} workers. Min is 1 and max is 128" in results.stderr

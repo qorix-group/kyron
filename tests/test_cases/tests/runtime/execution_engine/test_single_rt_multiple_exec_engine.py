@@ -14,6 +14,7 @@ from functools import cached_property
 from typing import Any
 
 import pytest
+from cit_properties import add_test_properties
 from cit_scenario import CitScenario
 from testing_utils import LogContainer
 
@@ -46,7 +47,13 @@ class TestSingleRuntimeMultipleExecEngine(CitScenario):
             ],
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__multi_engine"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_all_tasks_executed(self, logs_info_level: LogContainer) -> None:
+        """Verify that tasks spawned into two execution engines of one runtime are all executed."""
         task_logs = logs_info_level.get_logs("task_id", pattern="task_*")
         act_tasks = {entry.task_id for entry in task_logs}
         exp_tasks = set(self._tasks)
@@ -54,7 +61,13 @@ class TestSingleRuntimeMultipleExecEngine(CitScenario):
         tasks_diff = act_tasks.symmetric_difference(exp_tasks)
         assert not tasks_diff, f"Mismatch between tasks assigned ({exp_tasks}) and executed ({act_tasks})"
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__multi_engine"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_tasks_assigned_to_exec_engine(self, test_config: dict[str, Any], logs_info_level: LogContainer) -> None:
+        """Verify that each task runs only on the workers of the engine it was spawned into."""
         for tasks_data in test_config["tasks"]:
             engine_id = tasks_data["engine_id"]
             task_ids = tasks_data["task_ids"]

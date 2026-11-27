@@ -40,6 +40,7 @@ use super::worker_types::WorkerId;
 ///
 const LOCAL_STORAGE_SIZE_REDUCTION: usize = 8;
 
+// req-Id: comp_req__kyron_runtime__dedicated_worker
 pub(crate) struct DedicatedWorker {
     thread_handle: Option<Thread>,
     id: WorkerId,

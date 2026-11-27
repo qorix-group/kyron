@@ -216,6 +216,7 @@ impl WorkerInner {
         ctx_get_drivers().park(&self.scheduler, &self.own_interactor);
     }
 
+    // req-Id: comp_req__kyron_runtime__async_task_exec
     fn run_task(&mut self, task: TaskRef, should_notify: bool) {
         self.transition_to_executing();
 

@@ -13,6 +13,7 @@
 from typing import Any
 
 import pytest
+from cit_properties import add_test_properties
 from cit_scenario import CitScenario
 from testing_utils import LogContainer
 
@@ -29,7 +30,13 @@ class TestRuntimeOneWorkerOneTask(CitScenario):
             "test": {"tasks": ["task_1"]},
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__async_task_exec"],
+        test_type="requirements-based",
+        derivation_technique="requirements-analysis",
+    )
     def test_if_task_executed(self, test_config: dict[str, Any], logs_info_level: LogContainer):
+        """Verify that a task spawned into the runtime is executed by an async worker."""
         task_name = test_config["test"]["tasks"][0]
         assert logs_info_level.contains_log("id", value=task_name), f"Task {task_name} was not executed"
 
@@ -55,7 +62,13 @@ class TestRuntimeOneWorkerManyTasks(CitScenario):
             "test": {"tasks": [f"task_{ndx}" for ndx in range(1, 101)]},
         }
 
+    @add_test_properties(
+        partially_verifies=["comp_req__kyron_runtime__async_task_exec"],
+        test_type="requirements-based",
+        derivation_technique="equivalence-classes",
+    )
     def test_if_all_tasks_executed(self, test_config: dict[str, Any], logs_info_level: LogContainer):
+        """Verify that all spawned tasks are executed, for different worker and task counts."""
         all_expected_set = set(test_config["test"]["tasks"])
         expected_len = len(all_expected_set)
 

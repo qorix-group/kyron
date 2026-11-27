@@ -44,6 +44,7 @@ impl RuntimeBuilder {
         }
     }
 
+    // req-Id: comp_req__kyron_runtime__multi_engine
     ///
     /// Adds engine to the runtime using `builder` configured by caller.
     ///
@@ -122,6 +123,7 @@ impl Runtime {
         self.spawn_in_engine(0, future).unwrap() // Cannot fail as the engine 0 is always present
     }
 
+    // req-Id: comp_req__kyron_runtime__multi_engine
     /// Starts the given future asynchronously on the specified engine.
     ///
     /// Returns [`JoinHandle`] that can be used to retrieve result or an error
